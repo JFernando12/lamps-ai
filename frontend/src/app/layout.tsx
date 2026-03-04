@@ -4,18 +4,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "Lamps AI — Lámparas personalizadas con IA",
+  title: 'The Dream Gift — Lámparas personalizadas únicas',
   description:
-    "Convierte tus fotos favoritas en lámparas acrílicas LED únicas, grabadas con tu historia.",
+    'Convierte tus fotos favoritas en lámparas acrílicas LED únicas, grabadas con láser. Tu historia, hecha luz.',
   openGraph: {
-    title: "Lamps AI — Lámparas personalizadas",
-    description: "Convierte tu foto en una lámpara acrílica LED única.",
-    type: "website",
+    title: 'The Dream Gift — Lámparas personalizadas',
+    description:
+      'Convierte tu foto en una lámpara acrílica LED única, grabada con láser.',
+    type: 'website',
   },
   viewport: {
-    width: "device-width",
+    width: 'device-width',
     initialScale: 1,
-    viewportFit: "cover",
+    viewportFit: 'cover',
   },
 };
 

@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <Zap size={18} className="text-amber-400" />
             <span className="font-bold text-sm tracking-wide text-white">
-              Lamps <span className="text-amber-400">Admin</span>
+              The Dream <span className="text-amber-400">Gift</span>
             </span>
           </div>
 
@@ -33,9 +33,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               href="/admin/dashboard"
               className={`flex items-center gap-1.5 transition-colors ${
-                pathname === "/admin/dashboard"
-                  ? "text-amber-400"
-                  : "text-white/50 hover:text-white"
+                pathname === '/admin/dashboard'
+                  ? 'text-amber-400'
+                  : 'text-white/50 hover:text-white'
               }`}
             >
               <LayoutDashboard size={15} />
@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
       )}
 
-      <div className={!isLoginPage && user?.is_admin ? "pt-14" : ""}>
+      <div className={!isLoginPage && user?.is_admin ? 'pt-14' : ''}>
         {children}
       </div>
     </div>

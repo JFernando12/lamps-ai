@@ -55,29 +55,35 @@ function LoginContent() {
           <Sparkles size={32} className="text-amber-400 mx-auto mb-3" />
           <h1 className="text-2xl font-bold">Mi cuenta</h1>
           <p className="text-white/40 text-sm mt-1">
-            {mode === "login" ? "Inicia sesión para ver tus pedidos" : "Crea tu cuenta en Lamps AI"}
+            {mode === 'login'
+              ? 'Inicia sesión para ver tus pedidos'
+              : 'Crea tu cuenta en The Dream Gift'}
           </p>
         </div>
 
         <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-6">
-          {(["login", "register"] as const).map((m) => (
+          {(['login', 'register'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
               className={clsx(
-                "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                mode === m ? "bg-amber-500 text-black" : "text-white/50 hover:text-white"
+                'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                mode === m
+                  ? 'bg-amber-500 text-black'
+                  : 'text-white/50 hover:text-white',
               )}
             >
-              {m === "login" ? "Iniciar sesión" : "Registrarse"}
+              {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
             </button>
           ))}
         </div>
 
         <form onSubmit={handle} className="space-y-4">
-          {mode === "register" && (
+          {mode === 'register' && (
             <div>
-              <label className="block text-white/60 text-sm mb-1.5">Nombre</label>
+              <label className="block text-white/60 text-sm mb-1.5">
+                Nombre
+              </label>
               <input
                 type="text"
                 required
@@ -88,7 +94,9 @@ function LoginContent() {
             </div>
           )}
           <div>
-            <label className="block text-white/60 text-sm mb-1.5">Correo electrónico</label>
+            <label className="block text-white/60 text-sm mb-1.5">
+              Correo electrónico
+            </label>
             <input
               type="email"
               required
@@ -98,7 +106,9 @@ function LoginContent() {
             />
           </div>
           <div>
-            <label className="block text-white/60 text-sm mb-1.5">Contraseña</label>
+            <label className="block text-white/60 text-sm mb-1.5">
+              Contraseña
+            </label>
             <input
               type="password"
               required
@@ -115,7 +125,11 @@ function LoginContent() {
             disabled={loading}
             className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 rounded-xl transition-colors disabled:opacity-50"
           >
-            {loading ? "Cargando…" : mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+            {loading
+              ? 'Cargando…'
+              : mode === 'login'
+                ? 'Iniciar sesión'
+                : 'Crear cuenta'}
           </button>
         </form>
       </div>

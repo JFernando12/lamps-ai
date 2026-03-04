@@ -17,14 +17,20 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-md border-b border-white/10">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="font-bold text-lg tracking-tight text-amber-400">
-          Lamps<span className="text-white"> AI</span>
+        <Link
+          href="/"
+          className="font-bold text-lg tracking-tight text-amber-400"
+        >
+          The Dream<span className="text-white"> Gift</span>
         </Link>
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-4 text-sm">
-          <Link href="/#preview" className="text-white/70 hover:text-white transition-colors">
-            Genera tu preview
+          <Link
+            href="/#preview"
+            className="text-white/70 hover:text-white transition-colors"
+          >
+            Ver diseño
           </Link>
           {user ? (
             <>
@@ -72,10 +78,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile toggle */}
-        <button
-          className="md:hidden text-white"
-          onClick={() => setOpen(!open)}
-        >
+        <button className="md:hidden text-white" onClick={() => setOpen(!open)}>
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
@@ -83,26 +86,48 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-black border-t border-white/10 px-4 py-4 flex flex-col gap-4 text-sm">
-          <Link href="/#preview" onClick={() => setOpen(false)} className="text-white/70">
-            Genera tu preview
+          <Link
+            href="/#preview"
+            onClick={() => setOpen(false)}
+            className="text-white/70"
+          >
+            Ver diseño
           </Link>
           {user ? (
             <>
               {user.is_admin ? (
-                <Link href="/admin/dashboard" onClick={() => setOpen(false)} className="text-amber-400">
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="text-amber-400"
+                >
                   Dashboard
                 </Link>
               ) : (
-                <Link href="/mi-cuenta/pedidos" onClick={() => setOpen(false)} className="text-white/70">
+                <Link
+                  href="/mi-cuenta/pedidos"
+                  onClick={() => setOpen(false)}
+                  className="text-white/70"
+                >
                   Mis pedidos
                 </Link>
               )}
-              <button onClick={() => { logout(); setOpen(false); }} className="text-white/50 text-left">
+              <button
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="text-white/50 text-left"
+              >
                 Cerrar sesión
               </button>
             </>
           ) : (
-            <Link href="/login" onClick={() => setOpen(false)} className="text-white/70">
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="text-white/70"
+            >
               Mi cuenta
             </Link>
           )}

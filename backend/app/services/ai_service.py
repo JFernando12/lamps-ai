@@ -44,8 +44,9 @@ async def generate_preview(raw: bytes, content_type: str | None, user_email: str
 
     preview_id = str(uuid.uuid4())
 
-    # Convert upload to PNG for OpenAI
+    # Convert upload to PNG for OpenAI — resize to max 1024px to reduce upload time
     pil_img = Image.open(io.BytesIO(raw)).convert("RGBA")
+    pil_img.thumbnail((1024, 1024), Image.LANCZOS)
     png_buf = io.BytesIO()
     pil_img.save(png_buf, format="PNG")
     png_bytes = png_buf.getvalue()

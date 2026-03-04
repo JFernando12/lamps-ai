@@ -20,6 +20,8 @@ def generate(lineart_path: Path, reference_path: Path, prompt: str) -> bytes:
             model="gpt-image-1",
             image=images,
             prompt=prompt,
+            quality="medium",
+            size="1024x1024",
         )
     finally:
         for f in images:
