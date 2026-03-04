@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { useEffect, useState, useRef, Suspense } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { api } from '@/lib/api';
 import {
   CheckCircle2,
   Clock,
@@ -11,8 +11,8 @@ import {
   AlertCircle,
   Sparkles,
   MapPin,
-} from "lucide-react";
-import Link from "next/link";
+} from 'lucide-react';
+import Link from 'next/link';
 
 interface Order {
   order_id: string;
@@ -35,53 +35,58 @@ interface Order {
   mp_payment_id?: string;
 }
 
-const STATUS_INFO: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+const STATUS_INFO: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
   pending_payment: {
-    label: "Pendiente de pago",
+    label: 'Pendiente de pago',
     icon: <Clock size={20} />,
-    color: "text-yellow-400",
+    color: 'text-yellow-400',
   },
   paid: {
-    label: "Pago confirmado",
+    label: 'Pago confirmado',
     icon: <CheckCircle2 size={20} />,
-    color: "text-green-400",
+    color: 'text-green-400',
   },
   in_process: {
-    label: "En producción",
+    label: 'En producción',
     icon: <Sparkles size={20} />,
-    color: "text-amber-400",
+    color: 'text-amber-400',
   },
   shipped: {
-    label: "Enviado",
+    label: 'Enviado',
     icon: <Truck size={20} />,
-    color: "text-blue-400",
+    color: 'text-blue-400',
   },
   delivered: {
-    label: "Entregado",
+    label: 'Entregado',
     icon: <CheckCircle2 size={20} />,
-    color: "text-green-400",
+    color: 'text-green-400',
   },
   payment_failed: {
-    label: "Pago fallido",
+    label: 'Pago fallido',
     icon: <AlertCircle size={20} />,
-    color: "text-red-400",
+    color: 'text-red-400',
   },
   cancelled: {
-    label: "Cancelado",
+    label: 'Cancelado',
     icon: <AlertCircle size={20} />,
-    color: "text-red-400",
+    color: 'text-red-400',
   },
 };
 
-const STATUS_STEPS = ["paid", "in_process", "shipped", "delivered"];
+const STATUS_STEPS = ['paid', 'in_process', 'shipped', 'delivered'];
 
 export default function OrderStatusPage() {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center pt-14">
-        <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center pt-14">
+          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        </main>
+      }
+    >
       <OrderStatusContent />
     </Suspense>
   );
@@ -90,25 +95,42 @@ export default function OrderStatusPage() {
 function OrderStatusContent() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const paymentStatus = searchParams.get("status");
+  const paymentStatus = searchParams.get('status');
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasFiredPurchase = useRef(false);
 
   useEffect(() => {
-    const paymentId = searchParams.get("payment_id");
+    const paymentId = searchParams.get('payment_id');
 
     const load = async () => {
       try {
         // If returning from MP with a payment_id, sync the status first
-        if (paymentStatus === "success" && paymentId) {
-          await api.post(`/api/orders/${id}/sync-payment?payment_id=${paymentId}`, {});
+        if (paymentStatus === 'success' && paymentId) {
+          await api.post(
+            `/api/orders/${id}/sync-payment?payment_id=${paymentId}`,
+            {},
+          );
         }
         const order = await api.get<Order>(`/api/orders/${id}`);
         setOrder(order);
+        if (paymentStatus === 'success' && !hasFiredPurchase.current) {
+          hasFiredPurchase.current = true;
+          (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+            'track',
+            'Purchase',
+            {
+              value: parseFloat(order.unit_price) * order.quantity,
+              currency: 'MXN',
+              content_name: order.product_name,
+              content_ids: [order.order_id],
+            },
+          );
+        }
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Error desconocido");
+        setError(e instanceof Error ? e.message : 'Error desconocido');
       } finally {
         setLoading(false);
       }
@@ -142,7 +164,7 @@ function OrderStatusContent() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-16 md:pt-20 pb-16 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        {paymentStatus === "success" && (
+        {paymentStatus === 'success' && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 size={20} className="text-green-400" />
             <p className="text-green-300 font-medium">
@@ -155,16 +177,20 @@ function OrderStatusContent() {
           <div className="flex items-start justify-between mb-6">
             <div>
               <p className="text-white/40 text-sm mb-1">Pedido</p>
-              <p className="font-mono text-sm text-white/70">{order.order_id.slice(0, 8)}…</p>
+              <p className="font-mono text-sm text-white/70">
+                {order.order_id.slice(0, 8)}…
+              </p>
               <p className="text-white/30 text-xs mt-1">
-                {new Date(order.created_at).toLocaleDateString("es-MX", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                {new Date(order.created_at).toLocaleDateString('es-MX', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
                 })}
               </p>
             </div>
-            <div className={`flex items-center gap-2 font-semibold ${statusInfo.color}`}>
+            <div
+              className={`flex items-center gap-2 font-semibold ${statusInfo.color}`}
+            >
               {statusInfo.icon}
               {statusInfo.label}
             </div>
@@ -178,7 +204,9 @@ function OrderStatusContent() {
                   <span
                     key={s}
                     className={
-                      STATUS_STEPS.indexOf(s) <= currentStepIndex ? "text-amber-400" : ""
+                      STATUS_STEPS.indexOf(s) <= currentStepIndex
+                        ? 'text-amber-400'
+                        : ''
                     }
                   >
                     {STATUS_INFO[s]?.label ?? s}
@@ -223,10 +251,13 @@ function OrderStatusContent() {
           <div className="flex items-start gap-3 bg-white/[0.03] rounded-xl p-4">
             <MapPin size={18} className="text-amber-400 mt-0.5" />
             <div className="text-sm text-white/60 space-y-0.5">
-              <p className="font-medium text-white">{order.shipping.full_name}</p>
+              <p className="font-medium text-white">
+                {order.shipping.full_name}
+              </p>
               <p>{order.shipping.address}</p>
               <p>
-                {order.shipping.city}, {order.shipping.state} {order.shipping.zip_code}
+                {order.shipping.city}, {order.shipping.state}{' '}
+                {order.shipping.zip_code}
               </p>
               <p>{order.shipping.country}</p>
               {order.tracking_number && (

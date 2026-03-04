@@ -10,6 +10,7 @@ from .. import config
 from .. import database
 from .. import s3 as s3_helper
 from ..schemas.orders import CreateOrderRequest
+from . import meta_service
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
         UpdateExpression="SET order_id = :oid",
         ExpressionAttributeValues={":oid": order_id},
     )
-
+    meta_service.track_initiate_checkout(order_id, user_email, float(body.unit_price) * body.quantity)
     return {
         "order_id": order_id,
         "mp_init_point": preference["init_point"],
@@ -159,6 +160,10 @@ def sync_payment(order_id: str, payment_id: str, user_email: str) -> dict:
 
     updated = table.get_item(Key={"order_id": order_id}).get("Item", {})
     _attach_render_url(updated)
+
+    if mp_status == "approved":
+        meta_service.track_purchase(updated)
+
     return updated
 
 
@@ -206,5 +211,6 @@ def process_mp_webhook(data: dict) -> dict:
                 UpdateExpression="SET purchased = :t",
                 ExpressionAttributeValues={":t": True},
             )
+        meta_service.track_purchase(order)
 
     return {"ok": True}

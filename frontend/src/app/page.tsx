@@ -158,12 +158,25 @@ export default function HomePage() {
     reader.readAsDataURL(file);
 
     setUploading(true);
+    (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+      'trackCustom',
+      'PhotoUploaded',
+    );
     try {
       const result = await api.uploadPreview(file);
       setProgress(100);
       // Brief pause so the user sees 100% before the result appears
       await new Promise((r) => setTimeout(r, 400));
       setPreview(result);
+      (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+        'track',
+        'ViewContent',
+        {
+          content_name: 'Lamp Preview',
+          value: 799,
+          currency: 'MXN',
+        },
+      );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error generando preview');
     } finally {

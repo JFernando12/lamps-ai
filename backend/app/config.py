@@ -36,6 +36,10 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 _extra = os.getenv("EXTRA_ORIGINS", "")
 EXTRA_ORIGINS: list[str] = [o.strip() for o in _extra.split(",") if o.strip()]
 
+# ── Meta Conversions API ─────────────────────────────────────
+META_PIXEL_ID = os.getenv("META_PIXEL_ID", "")
+META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
+
 # ── Dev flags ─────────────────────────────────────────────────
 # Set MOCK_AI=true in .env to skip OpenAI and return a placeholder image
 MOCK_AI = os.getenv("MOCK_AI", "false").lower() in ("1", "true", "yes")
