@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
 
 export const metadata: Metadata = {
   title: 'The Dream Gift — Lámparas personalizadas únicas',
@@ -13,11 +13,12 @@ export const metadata: Metadata = {
       'Convierte tu foto en una lámpara acrílica LED única, grabada con láser.',
     type: 'website',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    viewportFit: 'cover',
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

@@ -11,7 +11,7 @@ app = FastAPI(title="Lamps AI API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[config.FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=list({config.FRONTEND_URL, "http://localhost:3000", *config.EXTRA_ORIGINS}),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

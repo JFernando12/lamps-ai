@@ -32,6 +32,10 @@ ADMIN_EMAIL = "admin@lamps.ai"
 # ── App ───────────────────────────────────────────────────────
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+# Comma-separated extra origins (e.g. for LAN testing from mobile)
+_extra = os.getenv("EXTRA_ORIGINS", "")
+EXTRA_ORIGINS: list[str] = [o.strip() for o in _extra.split(",") if o.strip()]
+
 # ── Dev flags ─────────────────────────────────────────────────
 # Set MOCK_AI=true in .env to skip OpenAI and return a placeholder image
 MOCK_AI = os.getenv("MOCK_AI", "false").lower() in ("1", "true", "yes")
