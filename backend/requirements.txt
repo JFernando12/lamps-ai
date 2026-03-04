@@ -1,0 +1,7 @@
+# This project uses uv. Install dependencies with:
+#
+#   uv sync
+#
+# See pyproject.toml for the dependency list.
+# This file is kept only for compatibility with tools that expect requirements.txt.
+-r pyproject.toml
