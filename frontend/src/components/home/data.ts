@@ -1,8 +1,8 @@
 export const GALLERY_IMAGES = [
-  '/gallery/lampara-1.jpg',
-  '/gallery/lampara-2.jpg',
-  '/gallery/lampara-3.jpg',
-  '/gallery/lampara-4.jpg',
+  '/gallery/lampara-1-v2.jpg',
+  '/gallery/lampara-2-v2.jpg',
+  '/gallery/lampara-3-v2.jpg',
+  '/gallery/lampara-4-v2.jpg',
 ];
 
 export const TESTIMONIALS = [

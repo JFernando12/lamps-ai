@@ -285,7 +285,7 @@ export default function PreviewGenerator() {
                 <div className="grid grid-cols-2 divide-x divide-white/10">
                   <div className="relative aspect-square">
                     <Image
-                      src="/gallery/lampara-3.jpg"
+                      src="/gallery/lampara-3-v2.jpg"
                       alt="Foto original ejemplo"
                       fill
                       className="object-cover"
@@ -297,7 +297,7 @@ export default function PreviewGenerator() {
                   </div>
                   <div className="relative aspect-square">
                     <Image
-                      src="/gallery/lampara-4.jpg"
+                      src="/gallery/lampara-4-v2.jpg"
                       alt="Resultado en lámpara ejemplo"
                       fill
                       className="object-cover"

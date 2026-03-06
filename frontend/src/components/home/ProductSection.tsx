@@ -74,7 +74,7 @@ export function ProductSection() {
             <div className="flex items-center justify-center">
               <div className="relative w-72 h-72 rounded-2xl overflow-hidden border border-amber-500/20 shadow-xl shadow-amber-500/10">
                 <Image
-                  src="/gallery/lampara-1.jpg"
+                  src="/gallery/lampara-1-v2.jpg"
                   alt="Lámpara acrílica LED personalizada"
                   fill
                   className="object-cover"
