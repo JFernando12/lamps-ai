@@ -33,7 +33,7 @@ export function PaymentStep({
         Resumen y pago
       </h2>
 
-      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-3">
+      <div className="bg-white/3 border border-white/10 rounded-xl p-4 space-y-3">
         {(previewRenderUrl || localPhotoPreview) && (
           <div className="flex gap-3 pb-3 border-b border-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -53,7 +53,9 @@ export function PaymentStep({
 
         <div className="flex items-center gap-3">
           <Package size={18} className="text-amber-400" />
-          <span className="font-medium">Lámpara acrílica LED personalizada</span>
+          <span className="font-medium">
+            Lámpara acrílica LED personalizada
+          </span>
         </div>
         <div className="text-white/50 text-sm pl-7 space-y-1">
           <p>

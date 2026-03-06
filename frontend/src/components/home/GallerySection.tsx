@@ -16,7 +16,7 @@ export function GallerySection() {
   }, []);
 
   return (
-    <section className="py-12 md:py-20 px-4 bg-white/[0.02]">
+    <section className="py-12 md:py-20 px-4 bg-white/2">
       <div className="max-w-3xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-2">
           Diseños <span className="text-amber-400">reales</span>

@@ -14,7 +14,7 @@ export function OccasionsSection() {
           {OCCASIONS.map((occ) => (
             <div
               key={occ.label}
-              className="bg-white/[0.03] border border-white/10 hover:border-amber-400/30 rounded-2xl p-5 text-center transition-colors"
+              className="bg-white/3 border border-white/10 hover:border-amber-400/30 rounded-2xl p-5 text-center transition-colors"
             >
               <div className="text-4xl mb-3">{occ.emoji}</div>
               <p className="font-bold text-sm mb-1">{occ.label}</p>

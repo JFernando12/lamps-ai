@@ -98,7 +98,7 @@ export default function MyOrdersPage() {
                 <Link
                   key={order.order_id}
                   href={`/pedido/${order.order_id}`}
-                  className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-amber-400/20 rounded-2xl p-4 transition-all group"
+                  className="flex items-center gap-4 bg-white/3 hover:bg-white/6 border border-white/10 hover:border-amber-400/20 rounded-2xl p-4 transition-all group"
                 >
                   {/* Render thumbnail */}
                   <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
@@ -117,8 +117,8 @@ export default function MyOrdersPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{order.product_name}</p>
                     <p className="text-white/40 text-sm">
-                      {new Date(order.created_at).toLocaleDateString("es-MX")} · $
-                      {order.unit_price} MXN
+                      {new Date(order.created_at).toLocaleDateString('es-MX')} ·
+                      ${order.unit_price} MXN
                     </p>
                     <span
                       className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}

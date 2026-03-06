@@ -9,7 +9,7 @@ export function FaqSection() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   return (
-    <section className="py-12 md:py-20 px-4 bg-white/[0.02]">
+    <section className="py-12 md:py-20 px-4 bg-white/2">
       <div className="max-w-2xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-3">
           Preguntas <span className="text-amber-400">frecuentes</span>
@@ -25,7 +25,7 @@ export function FaqSection() {
             >
               <button
                 onClick={() => setFaqOpen(faqOpen === i ? null : i)}
-                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors touch-manipulation"
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/2 transition-colors touch-manipulation"
               >
                 <span className="font-semibold text-sm text-white/90">
                   {faq.q}

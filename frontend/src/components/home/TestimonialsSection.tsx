@@ -3,11 +3,10 @@ import { TESTIMONIALS } from './data';
 
 export function TestimonialsSection() {
   return (
-    <section className="py-12 md:py-20 px-4 bg-white/[0.02]">
+    <section className="py-12 md:py-20 px-4 bg-white/2">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-3">
-          Lo que dicen{' '}
-          <span className="text-amber-400">nuestros clientes</span>
+          Lo que dicen <span className="text-amber-400">nuestros clientes</span>
         </h2>
         <p className="text-center text-white/40 text-sm mb-10">
           Reseñas reales de personas reales
@@ -16,7 +15,7 @@ export function TestimonialsSection() {
           {TESTIMONIALS.map((t) => (
             <div
               key={t.name}
-              className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 flex flex-col gap-4"
+              className="bg-white/3 border border-white/10 rounded-2xl p-6 flex flex-col gap-4"
             >
               <div className="flex gap-0.5">
                 {[...Array(t.stars)].map((_, i) => (

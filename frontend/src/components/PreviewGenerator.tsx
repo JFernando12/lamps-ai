@@ -118,8 +118,7 @@ export default function PreviewGenerator() {
             Ve cómo queda con <span className="text-amber-400">tu foto</span>
           </h2>
           <p className="text-white/50 text-base md:text-lg">
-            Gratis, sin registrarte. Sube una foto y ve el resultado en
-            segundos
+            Gratis, sin registrarte. Sube una foto y ve el resultado en segundos
           </p>
         </div>
 
@@ -156,7 +155,7 @@ export default function PreviewGenerator() {
                 'relative border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all flex flex-col items-center justify-center min-h-56 text-center touch-manipulation',
                 dragging
                   ? 'border-amber-400 bg-amber-400/5'
-                  : 'border-white/20 hover:border-amber-400/50 active:border-amber-400/50 hover:bg-white/[0.02]',
+                  : 'border-white/20 hover:border-amber-400/50 active:border-amber-400/50 hover:bg-white/2',
               )}
             >
               {localPreview ? (
@@ -176,9 +175,7 @@ export default function PreviewGenerator() {
                     <span className="hidden md:inline">
                       Arrastra tu foto aquí
                     </span>
-                    <span className="md:hidden">
-                      Toca para elegir tu foto
-                    </span>
+                    <span className="md:hidden">Toca para elegir tu foto</span>
                   </p>
                   <p className="text-white/40 text-sm hidden md:block">
                     o haz clic para buscarla
@@ -210,9 +207,7 @@ export default function PreviewGenerator() {
             {/* Mobile: explicit camera button */}
             {!localPreview && !uploading && (
               <button
-                onClick={() =>
-                  document.getElementById('camera-input')?.click()
-                }
+                onClick={() => document.getElementById('camera-input')?.click()}
                 className="md:hidden mt-3 w-full flex items-center justify-center gap-2 border border-white/10 hover:border-amber-400/30 active:border-amber-400/50 text-white/60 py-3 rounded-xl text-sm transition-colors touch-manipulation"
               >
                 📷 Abrir cámara
@@ -286,7 +281,7 @@ export default function PreviewGenerator() {
                 </button>
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+              <div className="rounded-2xl border border-white/10 bg-white/2 overflow-hidden">
                 <div className="grid grid-cols-2 divide-x divide-white/10">
                   <div className="relative aspect-square">
                     <Image

@@ -23,7 +23,7 @@ const STEPS = [
 
 export function HowItWorksSection() {
   return (
-    <section id="como-funciona" className="py-12 md:py-24 px-4 bg-white/[0.02]">
+    <section id="como-funciona" className="py-12 md:py-24 px-4 bg-white/2">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 md:mb-16">
           Cómo se hace
@@ -32,7 +32,7 @@ export function HowItWorksSection() {
           {STEPS.map((item) => (
             <div
               key={item.step}
-              className="relative bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors"
+              className="relative bg-white/3 border border-white/10 rounded-2xl p-6 hover:border-amber-400/30 transition-colors"
             >
               <span className="text-6xl font-black text-white/5 absolute top-4 right-6 select-none">
                 {item.step}
@@ -41,7 +41,9 @@ export function HowItWorksSection() {
                 {item.icon}
               </div>
               <h3 className="font-bold text-lg mb-2">{item.title}</h3>
-              <p className="text-white/50 text-sm leading-relaxed">{item.desc}</p>
+              <p className="text-white/50 text-sm leading-relaxed">
+                {item.desc}
+              </p>
             </div>
           ))}
         </div>

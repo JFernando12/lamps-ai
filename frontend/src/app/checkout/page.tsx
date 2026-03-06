@@ -152,7 +152,7 @@ function CheckoutContent() {
         <StepIndicator steps={steps} currentStep={step} onStepClick={setStep} />
 
         {photoUrl && step === 'payment' && (
-          <div className="flex items-center gap-4 bg-white/[0.03] border border-white/10 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-4 bg-white/3 border border-white/10 rounded-2xl p-4 mb-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photoUrl}
@@ -169,7 +169,7 @@ function CheckoutContent() {
           </div>
         )}
 
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 md:p-8">
+        <div className="bg-white/3 border border-white/10 rounded-2xl p-5 md:p-8">
           {step === 'photo' && (
             <PhotoStep
               localPhotoPreview={localPhotoPreview}

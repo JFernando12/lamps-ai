@@ -211,7 +211,7 @@ function OrderStatusContent() {
           </div>
         )}
 
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6">
+        <div className="bg-white/3 border border-white/10 rounded-2xl p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
               <p className="text-white/40 text-sm mb-1">Pedido</p>
@@ -279,7 +279,7 @@ function OrderStatusContent() {
           )}
 
           {/* Product */}
-          <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-3 bg-white/3 rounded-xl p-4 mb-4">
             <Package size={18} className="text-amber-400" />
             <div>
               <p className="font-medium">{order.product_name}</p>
@@ -290,7 +290,7 @@ function OrderStatusContent() {
           </div>
 
           {/* Shipping */}
-          <div className="flex items-start gap-3 bg-white/[0.03] rounded-xl p-4">
+          <div className="flex items-start gap-3 bg-white/3 rounded-xl p-4">
             <MapPin size={18} className="text-amber-400 mt-0.5" />
             <div className="text-sm text-white/60 space-y-0.5">
               <p className="font-medium text-white">
