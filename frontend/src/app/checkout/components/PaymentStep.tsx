@@ -67,7 +67,7 @@ export function PaymentStep({
         </div>
         <div className="border-t border-white/10 pt-3 flex justify-between font-bold text-lg">
           <span>Total</span>
-          <span className="text-amber-400">$799 MXN</span>
+          <span className="text-amber-400">$598 MXN</span>
         </div>
       </div>
 

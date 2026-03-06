@@ -14,7 +14,7 @@ export function ProductSection() {
   return (
     <section id="pedido" className="py-12 md:py-24 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-3xl p-8 md:p-12">
+        <div className="bg-linear-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-3xl p-8 md:p-12">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div>
               <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1 text-amber-400 text-xs mb-4">
@@ -32,7 +32,10 @@ export function ProductSection() {
                     key={feat}
                     className="flex items-center gap-2.5 text-white/80 text-sm"
                   >
-                    <CheckCircle2 size={16} className="text-amber-400 shrink-0" />
+                    <CheckCircle2
+                      size={16}
+                      className="text-amber-400 shrink-0"
+                    />
                     {feat}
                   </li>
                 ))}
@@ -45,10 +48,10 @@ export function ProductSection() {
                 </p>
               </div>
               <div className="flex items-end gap-3 mb-3">
-                <span className="text-5xl font-extrabold">$799</span>
+                <span className="text-5xl font-extrabold">$598</span>
                 <div className="mb-2">
                   <span className="line-through text-white/30 text-lg block">
-                    $1,299
+                    $999
                   </span>
                   <span className="text-white/40 text-sm">
                     MXN · envío gratis

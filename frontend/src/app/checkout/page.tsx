@@ -45,7 +45,7 @@ function CheckoutContent() {
     (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
       'track',
       'InitiateCheckout',
-      { value: 799, currency: 'MXN', num_items: 1 },
+      { value: 598, currency: 'MXN', num_items: 1 },
     );
   }, []);
 
@@ -88,7 +88,7 @@ function CheckoutContent() {
     (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
       'track',
       'AddShippingInfo',
-      { value: 799, currency: 'MXN' },
+      { value: 598, currency: 'MXN' },
     );
     setStep('payment');
   };
@@ -115,7 +115,7 @@ function CheckoutContent() {
       (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
         'track',
         'AddPaymentInfo',
-        { value: 799, currency: 'MXN' },
+        { value: 598, currency: 'MXN' },
       );
       window.location.href = isDev
         ? result.mp_sandbox_init_point
@@ -162,10 +162,10 @@ function CheckoutContent() {
             <div>
               <p className="font-semibold text-sm">Lámpara personalizada LED</p>
               <p className="text-white/40 text-sm">
-                ×1 — $799 MXN · envío gratis
+                ×1 — $598 MXN · envío gratis
               </p>
             </div>
-            <div className="ml-auto text-amber-400 font-bold text-lg">$799</div>
+            <div className="ml-auto text-amber-400 font-bold text-lg">$598</div>
           </div>
         )}
 

@@ -84,7 +84,7 @@ export default function PreviewGenerator() {
         'ViewContent',
         {
           content_name: 'Lamp Preview',
-          value: 799,
+          value: 598,
           currency: 'MXN',
         },
       );
@@ -264,7 +264,7 @@ export default function PreviewGenerator() {
                     href={`/checkout?preview_id=${preview.preview_id}`}
                     className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-4 rounded-2xl text-lg transition-all hover:scale-[1.02]"
                   >
-                    Pedir esta lámpara — $799 MXN
+                    Pedir esta lámpara — $598 MXN
                     <ArrowRight size={20} />
                   </Link>
                 )}
