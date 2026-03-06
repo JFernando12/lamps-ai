@@ -19,7 +19,7 @@ class CreateOrderRequest(BaseModel):
     shipping: ShippingInfo
     product_name: str = "Lámpara personalizada LED"
     quantity: int = 1
-    unit_price: float = 799.00  # MXN
+    unit_price: float = 598  # MXN
 
     @model_validator(mode='after')
     def check_source(self):
