@@ -56,7 +56,10 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
     database.orders_table().put_item(Item={
         "order_id": order_id,
         "user_email": user_email,
+        "photo_id": body.photo_id,
         "preview_id": body.preview_id,
+        "engraving_text": body.engraving_text,
+        "spotify_url": body.spotify_url,
         "product_name": body.product_name,
         "quantity": body.quantity,
         "unit_price": str(body.unit_price),
@@ -68,12 +71,19 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
         "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    # Link preview → order
-    database.previews_table().update_item(
-        Key={"preview_id": body.preview_id},
-        UpdateExpression="SET order_id = :oid",
-        ExpressionAttributeValues={":oid": order_id},
-    )
+    # Link source asset → order
+    if body.preview_id:
+        database.previews_table().update_item(
+            Key={"preview_id": body.preview_id},
+            UpdateExpression="SET order_id = :oid",
+            ExpressionAttributeValues={":oid": order_id},
+        )
+    if body.photo_id:
+        database.photos_table().update_item(
+            Key={"photo_id": body.photo_id},
+            UpdateExpression="SET order_id = :oid",
+            ExpressionAttributeValues={":oid": order_id},
+        )
     meta_service.track_initiate_checkout(order_id, user_email, float(body.unit_price) * body.quantity)
     return {
         "order_id": order_id,

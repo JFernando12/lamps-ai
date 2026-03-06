@@ -40,12 +40,14 @@ interface Order {
   created_at: string;
   shipping: ShippingInfo;
   tracking_number?: string;
-  render_url?: string;
+  photo_id?: string;
+  preview_id?: string;
+  photo_url?: string;
 }
 
 interface Stats {
+  total_photos_uploaded: number;
   total_previews_generated: number;
-  previews_converted_to_order: number;
   total_orders: number;
   paid_orders: number;
   total_revenue_mxn: number;
@@ -191,8 +193,8 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
             {[
               {
-                label: 'Previews generados',
-                value: stats.total_previews_generated,
+                label: 'Fotos subidas',
+                value: stats.total_photos_uploaded,
                 icon: <Users size={14} className="text-amber-400" />,
               },
               {
@@ -214,11 +216,6 @@ export default function AdminDashboard() {
                 label: 'Ingresos (MXN)',
                 value: `$${stats.total_revenue_mxn.toLocaleString()}`,
                 icon: <DollarSign size={14} className="text-amber-400" />,
-              },
-              {
-                label: 'Previews → Pedido',
-                value: stats.previews_converted_to_order,
-                icon: <TrendingUp size={14} className="text-amber-400" />,
               },
             ].map((stat) => (
               <div
@@ -291,7 +288,7 @@ export default function AdminDashboard() {
                 <tr className="text-white/40 text-xs uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Pedido</th>
                   <th className="text-left px-4 py-3">Cliente</th>
-                  <th className="text-left px-4 py-3">Preview</th>
+                  <th className="text-left px-4 py-3">Foto</th>
                   <th className="text-left px-4 py-3">Envío</th>
                   <th className="text-left px-4 py-3">Fecha</th>
                   <th className="text-left px-4 py-3">Total</th>
@@ -349,7 +346,7 @@ function DesktopRow({
           <p className="text-white/40 text-xs">{order.user_email}</p>
         </td>
         <td className="px-4 py-3">
-          <PreviewThumb url={order.render_url} />
+          <PreviewThumb url={order.photo_url} />
         </td>
         <td className="px-4 py-3">
           <button
@@ -415,7 +412,7 @@ function OrderCard({
     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
       {/* Top row: preview + meta */}
       <div className="flex gap-3">
-        <PreviewThumb url={order.render_url} size="lg" />
+        <PreviewThumb url={order.photo_url} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">

@@ -107,12 +107,16 @@ function OrderStatusContent() {
 
     const load = async () => {
       try {
-        // If returning from MP with a payment_id, sync the status first
-        if (paymentStatus === 'success' && paymentId) {
-          await api.post(
-            `/api/orders/${id}/sync-payment?payment_id=${paymentId}`,
-            {},
-          );
+        // Sync payment status for any MercadoPago return (success, failure, pending)
+        if (paymentId) {
+          try {
+            await api.post(
+              `/api/orders/${id}/sync-payment?payment_id=${paymentId}`,
+              {},
+            );
+          } catch {
+            // Sync failure (e.g. expired session) is non-fatal — load order anyway
+          }
         }
         const order = await api.get<Order>(`/api/orders/${id}`);
         setOrder(order);
@@ -164,12 +168,46 @@ function OrderStatusContent() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-16 md:pt-20 pb-16 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* MercadoPago return banners */}
         {paymentStatus === 'success' && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 size={20} className="text-green-400" />
             <p className="text-green-300 font-medium">
               ¡Pago recibido! Tu lámpara está en producción.
             </p>
+          </div>
+        )}
+        {paymentStatus === 'failure' && order.status !== 'paid' && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-300 font-medium">
+                Tu pago no fue procesado.
+              </p>
+              <p className="text-white/50 text-sm mt-0.5">
+                Puedes intentarlo de nuevo o contactarnos por{' '}
+                <a
+                  href="https://wa.me/527551155510"
+                  className="text-amber-400 underline"
+                >
+                  WhatsApp
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+        {paymentStatus === 'pending' && order.status !== 'paid' && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
+            <Clock size={20} className="text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-300 font-medium">
+                Tu pago está siendo verificado.
+              </p>
+              <p className="text-white/50 text-sm mt-0.5">
+                Recibirás una confirmación en tu correo en breve.
+              </p>
+            </div>
           </div>
         )}
 
@@ -233,6 +271,10 @@ function OrderStatusContent() {
                 alt="Tu lámpara"
                 className="w-full max-h-64 object-contain rounded-xl border border-white/10"
               />
+              <p className="text-xs text-white/40 text-center mt-2 px-2">
+                ✦ Imagen de referencia — los trazos finales son realizados a
+                mano, siendo fieles a tu foto.
+              </p>
             </div>
           )}
 

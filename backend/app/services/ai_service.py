@@ -37,6 +37,18 @@ def _make_mock_render(source_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
+def get_preview_info(preview_id: str) -> dict:
+    """Return preview metadata including a fresh presigned render URL."""
+    from fastapi import HTTPException
+    item = database.previews_table().get_item(Key={"preview_id": preview_id}).get("Item")
+    if not item:
+        raise HTTPException(status_code=404, detail="Preview not found")
+    result: dict = {"preview_id": preview_id}
+    if item.get("s3_render_key"):
+        result["render_url"] = s3_helper.get_presigned_url(item["s3_render_key"])
+    return result
+
+
 async def generate_preview(raw: bytes, content_type: str | None, user_email: str) -> dict:
     """Run the AI pipeline (photo → lamp render) and return presigned URL + preview_id."""
     if not content_type or not content_type.startswith("image/"):

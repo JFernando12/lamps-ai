@@ -19,6 +19,7 @@ S3_BUCKET = "lamps-ai"
 
 # ── DynamoDB table names ──────────────────────────────────────
 DYNAMO_TABLE_USERS = "lamps_users"
+DYNAMO_TABLE_PHOTOS = "lamps_photos"
 DYNAMO_TABLE_PREVIEWS = "lamps_previews"
 DYNAMO_TABLE_ORDERS = "lamps_orders"
 
@@ -48,15 +49,18 @@ MOCK_AI = os.getenv("MOCK_AI", "false").lower() in ("1", "true", "yes")
 DIRECT_RENDER_PROMPT = (
     "The first image is a photo of one or more people. "
     "The second image is a reference photo of a finished acrylic LED lamp product. "
-    "Using the people in the first photo as the subject, create a photorealistic product render of a finished acrylic LED lamp. "
-    "The acrylic panel should feature a minimalist black and white line art engraving of the people, "
+    "Using the people in the first photo as the subject, create a beautiful wide lifestyle photo of a finished acrylic LED lamp "
+    "placed on a wooden nightstand beside a cozy, neatly made bed in a warmly lit bedroom. "
+    "The lamp is small in the frame — shoot from far away so the entire bedroom scene is clearly visible, "
+    "with the bed, the nightstand and the lamp all fitting comfortably in the wide shot. "
+    "The acrylic panel features a minimalist black and white line art engraving of the people from the first photo, "
     "keeping their pose, expressions, hair and body outlines faithfully. "
-    "The acrylic panel shape should follow the organic silhouette of the figures. "
+    "The panel has NO text, NO letters, NO words — only the silhouette line art of the people. "
     "Match the visual style, size and LED base shown in the reference image as closely as possible. "
-    "The lamp is placed naturally on a wooden desk or table, with soft ambient room lighting. "
-    "The LED base glows with soft blue-white light that illuminates the engraved lines on the acrylic. "
-    "The scene feels warm and cozy, like a bedroom shelf or nightstand. "
-    "Photorealistic, high quality, natural lighting, subtle reflections on the table surface."
+    "The LED base glows with a soft light purple / lavender light that gently illuminates the acrylic panel. "
+    "The purple glow casts a subtle lilac hue on the nightstand surface. "
+    "The overall mood is intimate, cozy and inviting — like a real bedroom decoration photo from a lifestyle magazine. "
+    "Photorealistic, high quality, deep bokeh background, natural ambient lighting, subtle purple-tinted shadows."
 )
 
 REFERENCE_LAMP_PATH = str(Path(__file__).parent.parent / "lampara_referencia.jpg")

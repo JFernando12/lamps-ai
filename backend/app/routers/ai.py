@@ -6,6 +6,12 @@ from ..services import ai_service
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 
+@router.get("/preview/{preview_id}")
+def get_preview(preview_id: str):
+    """Return preview metadata (render_url) for a given preview_id."""
+    return ai_service.get_preview_info(preview_id)
+
+
 @router.post("/preview")
 async def generate_preview(
     file: UploadFile = File(...),

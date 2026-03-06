@@ -38,8 +38,20 @@ TABLES = [
         "BillingMode": "PAY_PER_REQUEST",
     },
 
+    # ── Photos ───────────────────────────────────────────────────────────────
+    # Primary key : photo_id (uuid) — customer uploads, no AI processing
+    {
+        "TableName": config.DYNAMO_TABLE_PHOTOS,
+        "KeySchema": [
+            {"AttributeName": "photo_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "photo_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+
     # ── Previews ─────────────────────────────────────────────────────────────
-    # Primary key : preview_id (uuid)
     # GSI         : user_email → list all previews by user
     {
         "TableName": config.DYNAMO_TABLE_PREVIEWS,
