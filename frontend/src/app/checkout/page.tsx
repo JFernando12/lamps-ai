@@ -510,6 +510,11 @@ function CheckoutContent() {
                     <div className="flex-1 h-px bg-white/10" />
                   </div>
 
+                  <div className="flex items-center gap-2.5 text-xs text-white/40">
+                    <Package size={13} className="text-amber-400 shrink-0" />
+                    <p>Aqui podras consultar el estado de tu pedido</p>
+                  </div>
+
                   <div className="flex gap-2 p-1 bg-white/5 rounded-xl">
                     {(['register', 'login'] as const).map((m) => (
                       <button
