@@ -26,12 +26,6 @@ export default function Navbar() {
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-4 text-sm">
-          <Link
-            href="/#preview"
-            className="text-white/70 hover:text-white transition-colors"
-          >
-            Ver diseño
-          </Link>
           {user ? (
             <>
               {user.is_admin ? (
@@ -69,7 +63,7 @@ export default function Navbar() {
           )}
           {!user?.is_admin && (
             <Link
-              href="/#pedido"
+              href="/checkout"
               className="bg-amber-500 hover:bg-amber-400 text-black font-semibold px-4 py-1.5 rounded-full text-sm transition-colors"
             >
               Pedir ahora
@@ -86,13 +80,6 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-black border-t border-white/10 px-4 py-4 flex flex-col gap-4 text-sm">
-          <Link
-            href="/#preview"
-            onClick={() => setOpen(false)}
-            className="text-white/70"
-          >
-            Ver diseño
-          </Link>
           {user ? (
             <>
               {user.is_admin ? (
@@ -133,7 +120,7 @@ export default function Navbar() {
           )}
           {!user?.is_admin && (
             <Link
-              href="/#pedido"
+              href="/checkout"
               onClick={() => setOpen(false)}
               className="bg-amber-500 text-black font-semibold px-4 py-2 rounded-full text-center"
             >

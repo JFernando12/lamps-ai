@@ -45,7 +45,7 @@ const TESTIMONIALS = [
     city: 'Monterrey',
     stars: 5,
     occasion: 'Día de madres',
-    text: 'El proceso fue facilísimo. Subí la foto, vi cómo iba a quedar antes de pagar, y el resultado fue idéntico al preview. Definitivamente voy a pedir más.',
+    text: 'El proceso fue facilísimo. Subí la foto, confirmé el pedido y en menos de una semana ya la tenía en casa. La calidad superó mis expectativas. Definitivamente voy a pedir más.',
   },
 ];
 
@@ -236,11 +236,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── PREVIEW GENERATOR ───────────────────────────────────── */}
-      {/* ETAPA 2: descomentar la línea de abajo y el import al inicio del archivo */}
-      {/* <PreviewGenerator /> */}
-      <div id="preview" />
 
       {/* ── CÓMO FUNCIONA ───────────────────────────────────────── */}
       <section
