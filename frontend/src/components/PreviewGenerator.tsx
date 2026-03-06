@@ -261,7 +261,7 @@ export default function PreviewGenerator() {
 
                 {!user?.is_admin && (
                   <Link
-                    href={`/checkout?preview_id=${preview.preview_id}`}
+                    href={`/checkout?product=rgb&preview_id=${preview.preview_id}`}
                     className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-4 rounded-2xl text-lg transition-all hover:scale-[1.02]"
                   >
                     Pedir esta lámpara — $598 MXN

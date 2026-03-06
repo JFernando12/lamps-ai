@@ -4,7 +4,13 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { Step, ShippingForm, EMPTY_SHIPPING } from './components/types';
+import {
+  Step,
+  ShippingForm,
+  EMPTY_SHIPPING,
+  ProductConfig,
+  getProduct,
+} from './components/types';
 import { StepIndicator } from './components/StepIndicator';
 import { PhotoStep } from './components/PhotoStep';
 import { DetailsStep } from './components/DetailsStep';
@@ -14,6 +20,7 @@ function CheckoutContent() {
   const params = useSearchParams();
   const { user, login, register, loading: authLoading } = useAuth();
   const urlPreviewId = params.get('preview_id') ?? '';
+  const product: ProductConfig = getProduct(params.get('product'));
 
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(
@@ -45,8 +52,9 @@ function CheckoutContent() {
     (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
       'track',
       'InitiateCheckout',
-      { value: 598, currency: 'MXN', num_items: 1 },
+      { value: product.price, currency: 'MXN', num_items: 1 },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDetailsNext = async (e: React.FormEvent) => {
@@ -88,7 +96,7 @@ function CheckoutContent() {
     (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
       'track',
       'AddShippingInfo',
-      { value: 598, currency: 'MXN' },
+      { value: product.price, currency: 'MXN' },
     );
     setStep('payment');
   };
@@ -109,13 +117,15 @@ function CheckoutContent() {
           ? { engraving_text: engravingText.trim() }
           : {}),
         ...(spotifyUrl.trim() ? { spotify_url: spotifyUrl.trim() } : {}),
+        product_name: product.name,
+        unit_price: product.price,
         shipping,
       });
       const isDev = process.env.NODE_ENV === 'development';
       (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
         'track',
         'AddPaymentInfo',
-        { value: 598, currency: 'MXN' },
+        { value: product.price, currency: 'MXN' },
       );
       window.location.href = isDev
         ? result.mp_sandbox_init_point
@@ -160,12 +170,14 @@ function CheckoutContent() {
               className="w-16 h-16 object-cover rounded-xl border border-amber-500/20 shrink-0"
             />
             <div>
-              <p className="font-semibold text-sm">Lámpara personalizada LED</p>
+              <p className="font-semibold text-sm">{product.name}</p>
               <p className="text-white/40 text-sm">
-                ×1 — $598 MXN · envío gratis
+                ×1 — ${product.price} MXN · envío gratis
               </p>
             </div>
-            <div className="ml-auto text-amber-400 font-bold text-lg">$598</div>
+            <div className="ml-auto text-amber-400 font-bold text-lg">
+              ${product.price}
+            </div>
           </div>
         )}
 
@@ -207,6 +219,7 @@ function CheckoutContent() {
 
           {step === 'payment' && (
             <PaymentStep
+              product={product}
               previewRenderUrl={previewRenderUrl}
               localPhotoPreview={localPhotoPreview}
               shipping={shipping}

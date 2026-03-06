@@ -25,17 +25,17 @@ export function HeroSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <a
-                href="/checkout"
+                href="#pedido"
                 className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold px-8 py-4 rounded-2xl text-lg transition-all hover:scale-105 touch-manipulation"
               >
                 <Sparkles size={20} />
                 Pedir mi lámpara
               </a>
               <a
-                href="#como-funciona"
+                href="#pedido"
                 className="inline-flex items-center justify-center gap-2 border border-white/20 hover:border-white/50 text-white px-8 py-4 rounded-2xl text-lg transition-colors touch-manipulation"
               >
-                Cómo se hace
+                Ver las opciones
                 <ArrowRight size={18} />
               </a>
             </div>

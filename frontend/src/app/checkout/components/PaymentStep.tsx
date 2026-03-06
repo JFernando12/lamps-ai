@@ -1,7 +1,8 @@
 import { CreditCard, Lock, Package } from 'lucide-react';
-import { ShippingForm, User } from './types';
+import { ShippingForm, User, ProductConfig } from './types';
 
 interface Props {
+  product: ProductConfig;
   previewRenderUrl: string | null;
   localPhotoPreview: string | null;
   shipping: ShippingForm;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function PaymentStep({
+  product,
   previewRenderUrl,
   localPhotoPreview,
   shipping,
@@ -43,7 +45,7 @@ export function PaymentStep({
               className="w-14 h-14 object-cover rounded-lg border border-amber-500/20 shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm">Lámpara personalizada LED</p>
+              <p className="font-medium text-sm">{product.name}</p>
               <p className="text-white/40 text-xs mt-0.5">
                 Diseño con tu foto · grabado láser
               </p>
@@ -53,11 +55,10 @@ export function PaymentStep({
 
         <div className="flex items-center gap-3">
           <Package size={18} className="text-amber-400" />
-          <span className="font-medium">
-            Lámpara acrílica LED personalizada
-          </span>
+          <span className="font-medium">{product.name}</span>
         </div>
         <div className="text-white/50 text-sm pl-7 space-y-1">
+          <p className="text-white/40 text-xs">{product.tagline}</p>
           <p>
             Envío a: {shipping.city}, {shipping.state}
           </p>
@@ -67,7 +68,7 @@ export function PaymentStep({
         </div>
         <div className="border-t border-white/10 pt-3 flex justify-between font-bold text-lg">
           <span>Total</span>
-          <span className="text-amber-400">$598 MXN</span>
+          <span className="text-amber-400">${product.price} MXN</span>
         </div>
       </div>
 

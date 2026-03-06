@@ -63,10 +63,10 @@ export default function Navbar() {
           )}
           {!user?.is_admin && (
             <Link
-              href="/checkout"
+              href="/#pedido"
               className="bg-amber-500 hover:bg-amber-400 text-black font-semibold px-4 py-1.5 rounded-full text-sm transition-colors"
             >
-              Pedir ahora
+              Ver lámparas
             </Link>
           )}
         </div>
@@ -120,11 +120,11 @@ export default function Navbar() {
           )}
           {!user?.is_admin && (
             <Link
-              href="/checkout"
+              href="/#pedido"
               onClick={() => setOpen(false)}
               className="bg-amber-500 text-black font-semibold px-4 py-2 rounded-full text-center"
             >
-              Pedir ahora
+              Ver lámparas
             </Link>
           )}
         </div>
