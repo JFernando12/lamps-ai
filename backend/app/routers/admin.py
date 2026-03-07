@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends
 
 from ..dependencies import get_current_admin
 from ..schemas.admin import UpdateOrderStatusRequest
+from ..schemas.email_marketing import SendCampaignRequest, SendTrackingRequest
 from ..services import admin_service
+from ..services import email_marketing_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -39,3 +41,53 @@ def ads_config(_admin=Depends(get_current_admin)):
 @router.get("/ads/events")
 def ads_events(_admin=Depends(get_current_admin)):
     return admin_service.get_pixel_events()
+
+
+# ── Email Marketing ───────────────────────────────────────────────────────────
+
+@router.get("/email/templates")
+def email_templates(_admin=Depends(get_current_admin)):
+    return email_marketing_service.list_templates()
+
+
+@router.get("/email/audience")
+def email_audience(
+    segment: str = "all",
+    product_filter: str | None = None,
+    _admin=Depends(get_current_admin),
+):
+    return email_marketing_service.get_audience_preview(segment, product_filter)  # type: ignore[arg-type]
+
+
+@router.get("/email/campaigns")
+def email_campaigns(_admin=Depends(get_current_admin)):
+    return email_marketing_service.list_campaigns()
+
+
+@router.post("/email/campaigns/send")
+def email_send_campaign(body: SendCampaignRequest, _admin=Depends(get_current_admin)):
+    return email_marketing_service.send_campaign(
+        template_id=body.template_id,
+        segment=body.segment,
+        subject=body.subject,
+        title=body.title,
+        body_html=body.body_html,
+        cta_text=body.cta_text,
+        cta_url_template=body.cta_url_template,
+        product_filter=body.product_filter,
+        recipient_override=body.recipient_override,
+    )
+
+
+@router.post("/email/orders/{order_id}/confirmation")
+def email_order_confirmation(order_id: str, _admin=Depends(get_current_admin)):
+    return email_marketing_service.send_order_confirmation(order_id)
+
+
+@router.post("/email/orders/{order_id}/tracking")
+def email_send_tracking(
+    order_id: str,
+    body: SendTrackingRequest,
+    _admin=Depends(get_current_admin),
+):
+    return email_marketing_service.send_tracking_email(order_id, body.tracking_number)

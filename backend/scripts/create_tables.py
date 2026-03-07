@@ -89,6 +89,19 @@ TABLES = [
         "BillingMode": "PAY_PER_REQUEST",
     },
 
+    # ── Email Campaigns ──────────────────────────────────────────
+    # Primary key : campaign_id (uuid)
+    {
+        "TableName": config.DYNAMO_TABLE_EMAIL_CAMPAIGNS,
+        "KeySchema": [
+            {"AttributeName": "campaign_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "campaign_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+
 ]
 
 
@@ -123,7 +136,8 @@ def enable_ttl(name: str, attr: str) -> None:
 def create_tables() -> None:
     print(f"Region  : {config.AWS_REGION}")
     print(f"Tables  : {config.DYNAMO_TABLE_USERS}, {config.DYNAMO_TABLE_PHOTOS}, "
-          f"{config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}")
+          f"{config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}, "
+          f"{config.DYNAMO_TABLE_EMAIL_CAMPAIGNS}")
     print()
 
     for schema in TABLES:

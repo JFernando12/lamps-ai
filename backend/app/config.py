@@ -20,6 +20,7 @@ DYNAMO_TABLE_USERS = "lamps_users"
 DYNAMO_TABLE_PHOTOS = "lamps_photos"
 DYNAMO_TABLE_ORDERS = "lamps_orders"
 DYNAMO_TABLE_CARTS = "lamps_carts"
+DYNAMO_TABLE_EMAIL_CAMPAIGNS = "lamps_email_campaigns"
 
 # ── Email (Amazon SES) ────────────────────────────────────────
 # Must be a verified sender in SES. Leave empty to disable cart emails.

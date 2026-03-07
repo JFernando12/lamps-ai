@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, LogOut, Zap, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, LogOut, Zap, BarChart3, Mail } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -55,6 +55,17 @@ export default function AdminLayout({
             >
               <BarChart3 size={15} />
               Ads
+            </Link>
+            <Link
+              href="/admin/email"
+              className={`flex items-center gap-1.5 transition-colors ${
+                pathname.startsWith('/admin/email')
+                  ? 'text-amber-400'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <Mail size={15} />
+              Email
             </Link>
             <button
               onClick={handleLogout}

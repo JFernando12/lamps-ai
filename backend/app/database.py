@@ -28,3 +28,7 @@ def orders_table():
 
 def carts_table():
     return get_table(config.DYNAMO_TABLE_CARTS)
+
+
+def email_campaigns_table():
+    return get_table(config.DYNAMO_TABLE_EMAIL_CAMPAIGNS)
