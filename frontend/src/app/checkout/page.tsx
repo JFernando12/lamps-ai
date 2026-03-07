@@ -334,7 +334,7 @@ function CheckoutContent() {
       setError(e instanceof Error ? e.message : 'Error al crear el pedido');
       setLoading(false);
     }
-  };;
+  };
 
   const steps: { id: Step; label: string }[] = [
     { id: 'photo' as Step, label: 'Foto' },

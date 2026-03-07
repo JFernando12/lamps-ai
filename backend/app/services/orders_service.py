@@ -26,7 +26,7 @@ def _compact(d: dict) -> dict:
 
 def create_order(
     body: CreateOrderRequest,
-    user_email: str,
+    user_email: str | None,
     client_ip: str | None = None,
     user_agent: str | None = None,
 ) -> dict:
@@ -38,6 +38,9 @@ def create_order(
     cart_items = cart.get("items", [])
     if not cart_items:
         raise HTTPException(status_code=400, detail="El carrito está vacío")
+
+    # Resolve email: authenticated user > cart email > None
+    resolved_email: str | None = user_email or cart.get("email") or None
 
     order_id = str(uuid.uuid4())
 
@@ -66,7 +69,10 @@ def create_order(
             "failure": f"{config.FRONTEND_URL}/pedido/{order_id}?status=failure",
             "pending": f"{config.FRONTEND_URL}/pedido/{order_id}?status=pending",
         },
-        **({"payer": {"email": user_email}} if not is_local else {}),
+        # Only include payer email when we have a real one and we're in production
+        **({
+            "payer": {"email": resolved_email}
+        } if not is_local and resolved_email and "@" in resolved_email else {}),
         "auto_return": "approved",
     }
     pref_response = sdk.preference().create(preference_payload)
@@ -83,7 +89,7 @@ def create_order(
     # 3. Persist order
     order_item = _compact({
         "order_id": order_id,
-        "user_email": user_email,
+        "user_email": resolved_email,
         "cart_id": body.cart_id,
         "items": cart_items,
         "total_amount": str(total_amount),
@@ -132,7 +138,7 @@ def create_order(
     total_qty = sum(int(ci.get("quantity", 1)) for ci in cart_items)
     get_event("InitiateCheckout").send({
         "order_id": order_id,
-        "user_email": user_email,
+        "user_email": resolved_email,
         "unit_price": total_amount,
         "quantity": total_qty,
         "checkout_event_id": body.checkout_event_id,
@@ -160,21 +166,23 @@ def get_my_orders(user_email: str) -> list:
     return orders
 
 
-def get_order(order_id: str, user_email: str, is_admin: bool = False) -> dict:
+def get_order(order_id: str, user_email: str | None, is_admin: bool = False) -> dict:
     item = database.orders_table().get_item(Key={"order_id": order_id}).get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Order not found")
-    if item["user_email"] != user_email and not is_admin:
+    # Allow access if: admin, anonymous request (UUID is unguessable), or email matches
+    if not is_admin and user_email is not None and item.get("user_email") != user_email:
         raise HTTPException(status_code=403, detail="Forbidden")
     return item
 
 
-def sync_payment(order_id: str, payment_id: str, user_email: str) -> dict:
+def sync_payment(order_id: str, payment_id: str, user_email: str | None) -> dict:
     """Manually fetch payment status from MP and update the order (used on redirect back)."""
     item = database.orders_table().get_item(Key={"order_id": order_id}).get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Order not found")
-    if item["user_email"] != user_email:
+    # Allow sync if anonymous (UUID is unguessable) or email matches
+    if user_email is not None and item.get("user_email") != user_email:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)

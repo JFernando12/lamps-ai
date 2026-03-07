@@ -54,7 +54,7 @@ def upsert_cart(body: UpsertCartRequest) -> dict:
     cart_id = str(uuid.uuid4())
     table.put_item(Item=_compact({
         "cart_id": cart_id,
-        "email": str(body.email),
+        "email": str(body.email) if body.email else None,
         "items": items_data,
         "status": "active",
         "utm_source": body.utm_source,
