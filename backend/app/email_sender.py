@@ -19,7 +19,7 @@ def _product_name(product_id: str) -> str:
 
 
 def _build_html(cart_id: str, step: int, product_id: str) -> str:
-    recovery_url = f"{config.FRONTEND_URL}/checkout?cart={cart_id}&product={product_id}"
+    recovery_url = f"{config.FRONTEND_URL}/checkout?cart_id={cart_id}&product={product_id}"
     pname = _product_name(product_id)
 
     bodies = [

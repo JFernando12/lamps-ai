@@ -13,6 +13,11 @@ from ..pixel_events import get_event
 
 logger = logging.getLogger(__name__)
 
+_PRODUCT_CATALOG: dict[str, dict] = {
+    "rgb":    {"name": "L\u00e1mpara acr\u00edlica LED RGB",  "price": 598.0},
+    "madera": {"name": "L\u00e1mpara base de madera", "price": 719.0},
+}
+
 
 def _compact(d: dict) -> dict:
     """Remove keys whose value is None — DynamoDB rejects null attribute values."""
@@ -25,29 +30,43 @@ def create_order(
     client_ip: str | None = None,
     user_agent: str | None = None,
 ) -> dict:
+    # 1. Fetch and validate cart
+    cart = database.carts_table().get_item(Key={"cart_id": body.cart_id}).get("Item")
+    if not cart or cart.get("status") in ("converted", "expired"):
+        raise HTTPException(status_code=400, detail="Carrito no válido o ya convertido")
+
+    cart_items = cart.get("items", [])
+    if not cart_items:
+        raise HTTPException(status_code=400, detail="El carrito está vacío")
+
     order_id = str(uuid.uuid4())
 
-    # Build MercadoPago preference
+    # 2. Build MercadoPago preference from cart items
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
     is_local = "localhost" in config.FRONTEND_URL or "127.0.0.1" in config.FRONTEND_URL
-    preference_payload = {
-        "items": [{
-            "title": body.product_name,
-            "quantity": body.quantity,
-            "unit_price": body.unit_price,
+
+    mp_items = []
+    total_amount = 0.0
+    for ci in cart_items:
+        catalog = _PRODUCT_CATALOG.get(ci.get("product_id", "rgb"), _PRODUCT_CATALOG["rgb"])
+        qty = int(ci.get("quantity", 1))
+        mp_items.append({
+            "title": catalog["name"],
+            "quantity": qty,
+            "unit_price": catalog["price"],
             "currency_id": "MXN",
-        }],
+        })
+        total_amount += catalog["price"] * qty
+
+    preference_payload = {
+        "items": mp_items,
         "external_reference": order_id,
         "back_urls": {
             "success": f"{config.FRONTEND_URL}/pedido/{order_id}?status=success",
             "failure": f"{config.FRONTEND_URL}/pedido/{order_id}?status=failure",
             "pending": f"{config.FRONTEND_URL}/pedido/{order_id}?status=pending",
         },
-        # In sandbox, setting payer.email to a real email causes "Una de las partes es de prueba"
-        # Only set payer email in production (non-sandbox) mode
         **({"payer": {"email": user_email}} if not is_local else {}),
-        # auto_return works with public URLs; in local dev MercadoPago won't redirect
-        # automatically but the user can click "Volver al sitio" to trigger back_urls
         "auto_return": "approved",
     }
     pref_response = sdk.preference().create(preference_payload)
@@ -61,52 +80,68 @@ def create_order(
 
     preference = pref_response["response"]
 
-    # Persist order (compact removes None values — DynamoDB rejects nulls)
-    item = _compact({
+    # 3. Persist order
+    order_item = _compact({
         "order_id": order_id,
         "user_email": user_email,
-        "photo_id": body.photo_id,
-        "engraving_text": body.engraving_text,
-        "spotify_url": body.spotify_url,
-        "product_name": body.product_name,
-        "quantity": body.quantity,
-        "unit_price": str(body.unit_price),
+        "cart_id": body.cart_id,
+        "items": cart_items,
+        "total_amount": str(total_amount),
         "shipping": body.shipping.model_dump(),
         "status": "pending_payment",
         "mp_preference_id": preference["id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
-        # Attribution
-        "utm_source": body.utm_source,
-        "utm_medium": body.utm_medium,
-        "utm_campaign": body.utm_campaign,
-        "utm_content": body.utm_content,
-        "utm_term": body.utm_term,
-        "fbclid": body.fbclid,
-        "fbp": body.fbp,
+        # Attribution — pulled from cart so the frontend doesn't re-send it
+        "utm_source": cart.get("utm_source"),
+        "utm_medium": cart.get("utm_medium"),
+        "utm_campaign": cart.get("utm_campaign"),
+        "utm_content": cart.get("utm_content"),
+        "utm_term": cart.get("utm_term"),
+        "fbclid": cart.get("fbclid"),
+        "fbp": cart.get("fbp"),
         "client_ip": client_ip,
         "user_agent": user_agent,
     })
-    database.orders_table().put_item(Item=item)
+    database.orders_table().put_item(Item=order_item)
 
-    # Link photo → order
-    if body.photo_id:
-        database.photos_table().update_item(
-            Key={"photo_id": body.photo_id},
-            UpdateExpression="SET order_id = :oid",
-            ExpressionAttributeValues={":oid": order_id},
+    # 4. Link each photo → order
+    for ci in cart_items:
+        if ci.get("photo_id"):
+            database.photos_table().update_item(
+                Key={"photo_id": ci["photo_id"]},
+                UpdateExpression="SET order_id = :oid",
+                ExpressionAttributeValues={":oid": order_id},
+            )
+
+    # 5. Convert cart (non-critical)
+    try:
+        database.carts_table().update_item(
+            Key={"cart_id": body.cart_id},
+            UpdateExpression="SET #s = :s, converted_at = :ca",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={
+                ":s": "converted",
+                ":ca": datetime.now(timezone.utc).isoformat(),
+            },
         )
+    except Exception as exc:
+        logger.warning("convert_cart failed: %s", exc)
+
+    # 6. Fire CAPI
+    total_qty = sum(int(ci.get("quantity", 1)) for ci in cart_items)
     get_event("InitiateCheckout").send({
         "order_id": order_id,
         "user_email": user_email,
-        "unit_price": body.unit_price,
-        "quantity": body.quantity,
+        "unit_price": total_amount,
+        "quantity": total_qty,
         "checkout_event_id": body.checkout_event_id,
         "client_ip": client_ip,
         "user_agent": user_agent,
-        "fbclid": body.fbclid,
-        "fbp": body.fbp,
+        "fbclid": cart.get("fbclid"),
+        "fbp": cart.get("fbp"),
     })
+
     return {
         "order_id": order_id,
         "mp_init_point": preference["init_point"],

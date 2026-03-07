@@ -1,12 +1,9 @@
-import { CreditCard, Lock, Package } from 'lucide-react';
-import { ShippingForm, User, ProductConfig } from './types';
+import { CreditCard, Lock } from 'lucide-react';
+import { ShippingForm, User, CartItemState, PRODUCTS } from './types';
 
 interface Props {
-  product: ProductConfig;
-  localPhotoPreview: string | null;
+  items: CartItemState[];
   shipping: ShippingForm;
-  engravingText: string;
-  spotifyUrl: string;
   user: User | null;
   error: string | null;
   loading: boolean;
@@ -15,17 +12,19 @@ interface Props {
 }
 
 export function PaymentStep({
-  product,
-  localPhotoPreview,
+  items,
   shipping,
-  engravingText,
-  spotifyUrl,
   user,
   error,
   loading,
   onPlaceOrder,
   onBack,
 }: Props) {
+  const total = items.reduce(
+    (sum, it) => sum + PRODUCTS[it.productId].price * it.quantity,
+    0,
+  );
+
   return (
     <div className="space-y-6">
       <h2 className="font-semibold text-lg flex items-center gap-2">
@@ -34,39 +33,56 @@ export function PaymentStep({
       </h2>
 
       <div className="bg-white/3 border border-white/10 rounded-xl p-4 space-y-3">
-        {localPhotoPreview && (
-          <div className="flex gap-3 pb-3 border-b border-white/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={localPhotoPreview}
-              alt="Tu foto"
-              className="w-14 h-14 object-cover rounded-lg border border-amber-500/20 shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm">{product.name}</p>
-              <p className="text-white/40 text-xs mt-0.5">
-                Diseño con tu foto · grabado láser
-              </p>
+        {/* Items list */}
+        {items.map((item, idx) => {
+          const product = PRODUCTS[item.productId];
+          return (
+            <div
+              key={item.localId}
+              className="flex gap-3 pb-3 border-b border-white/8 last:border-b-0 last:pb-0"
+            >
+              {item.localPhotoPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.localPhotoPreview}
+                  alt={`Lámpara ${idx + 1}`}
+                  className="w-12 h-12 object-cover rounded-lg border border-amber-500/20 shrink-0"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{product.name}</p>
+                <p className="text-white/40 text-xs mt-0.5">
+                  {product.tagline}
+                </p>
+                {item.engravingText && (
+                  <p className="text-white/35 text-xs mt-0.5">
+                    &ldquo;{item.engravingText}&rdquo;
+                  </p>
+                )}
+                {item.spotifyUrl && (
+                  <p className="text-white/35 text-xs mt-0.5">
+                    Código Spotify incluido
+                  </p>
+                )}
+              </div>
+              <span className="text-amber-400 font-semibold text-sm shrink-0">
+                ${product.price * item.quantity}
+              </span>
             </div>
-          </div>
-        )}
+          );
+        })}
 
-        <div className="flex items-center gap-3">
-          <Package size={18} className="text-amber-400" />
-          <span className="font-medium">{product.name}</span>
-        </div>
-        <div className="text-white/50 text-sm pl-7 space-y-1">
-          <p className="text-white/40 text-xs">{product.tagline}</p>
-          <p>
-            Envío a: {shipping.city}, {shipping.state}
-          </p>
-          {engravingText && <p>Texto: &ldquo;{engravingText}&rdquo;</p>}
-          {spotifyUrl && <p>Código Spotify incluido</p>}
-          {user && <p>Cuenta: {user.email}</p>}
-        </div>
+        {/* Shipping row */}
+        <p className="text-white/40 text-xs pt-1">
+          Envío a: {shipping.city}, {shipping.state}
+        </p>
+
+        {user && <p className="text-white/40 text-xs">Cuenta: {user.email}</p>}
+
+        {/* Total */}
         <div className="border-t border-white/10 pt-3 flex justify-between font-bold text-lg">
           <span>Total</span>
-          <span className="text-amber-400">${product.price} MXN</span>
+          <span className="text-amber-400">${total} MXN</span>
         </div>
       </div>
 
@@ -87,7 +103,7 @@ export function PaymentStep({
         ) : (
           <>
             <CreditCard size={20} />
-            Pagar con MercadoPago
+            Pagar ${total} MXN con MercadoPago
           </>
         )}
       </button>

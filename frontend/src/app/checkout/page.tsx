@@ -10,8 +10,9 @@ import {
   Step,
   ShippingForm,
   EMPTY_SHIPPING,
-  ProductConfig,
+  ProductId,
   getProduct,
+  CartItemState,
 } from './components/types';
 
 import { StepIndicator } from './components/StepIndicator';
@@ -22,17 +23,23 @@ import { PaymentStep } from './components/PaymentStep';
 function CheckoutContent() {
   const params = useSearchParams();
   const { user, login, register, loading: authLoading } = useAuth();
-  const urlCartId = params.get('cart') ?? '';
-  const product: ProductConfig = getProduct(params.get('product'));
+  const urlCartId = params.get('cart_id') ?? '';
+  const initialProductId = (params.get('product') ?? 'rgb') as ProductId;
 
-  // Stable event_id for InitiateCheckout — generated once on mount so the
-  // backend CAPI call and browser pixel event share the same ID (dedup).
   const [checkoutEventId] = useState<string>(() => genEventId('ic'));
 
-  const [photoId, setPhotoId] = useState<string | null>(null);
-  const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(
-    null,
-  );
+  const [items, setItems] = useState<CartItemState[]>(() => [
+    {
+      localId: '1',
+      photoId: null,
+      localPhotoPreview: null,
+      engravingText: '',
+      spotifyUrl: '',
+      productId: initialProductId,
+      quantity: 1,
+    },
+  ]);
+
   const [step, setStep] = useState<Step>('photo');
   const [shipping, setShipping] = useState<ShippingForm>(EMPTY_SHIPPING);
   const [accountMode, setAccountMode] = useState<'login' | 'register'>(
@@ -42,38 +49,70 @@ function CheckoutContent() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [engravingText, setEngravingText] = useState('');
-  const [spotifyUrl, setSpotifyUrl] = useState('');
-  // Cart draft (server-side abandoned cart recovery)
   const [cartId, setCartId] = useState<string | null>(null);
 
-  // -------------------------------------------------------------------------
-  // Server-side cart draft helpers
-  // -------------------------------------------------------------------------
+  // ── Item updaters ──────────────────────────────────────────────────────
+  const updateItem = useCallback(
+    (localId: string, patch: Partial<CartItemState>) => {
+      setItems((prev) =>
+        prev.map((it) => (it.localId === localId ? { ...it, ...patch } : it)),
+      );
+    },
+    [],
+  );
+
+  const handleAddItem = useCallback(() => {
+    setItems((prev) => [
+      ...prev,
+      {
+        localId: String(Date.now()),
+        photoId: null,
+        localPhotoPreview: null,
+        engravingText: '',
+        spotifyUrl: '',
+        productId: 'rgb',
+        quantity: 1,
+      },
+    ]);
+  }, []);
+
+  const handleRemoveItem = useCallback((localId: string) => {
+    setItems((prev) => prev.filter((it) => it.localId !== localId));
+  }, []);
+
+  // ── Server-side cart draft ─────────────────────────────────────────────
   const saveDraftToServer = useCallback(
     async (
-      opts: {
-        emailOverride?: string;
-        photoIdOverride?: string;
-      } = {},
+      opts: { emailOverride?: string; itemsOverride?: CartItemState[] } = {},
     ) => {
       const emailToUse = opts.emailOverride ?? email;
       if (!emailToUse || !emailToUse.includes('@')) return;
-      const pidToUse = opts.photoIdOverride ?? photoId;
+      const itemsToUse = opts.itemsOverride ?? items;
       try {
-        const { utm_source, utm_medium, utm_campaign, fbclid } =
-          getStoredAttribution() ?? {};
+        const {
+          utm_source,
+          utm_medium,
+          utm_campaign,
+          utm_content,
+          utm_term,
+          fbclid,
+        } = getStoredAttribution() ?? {};
         const fbp = getFbpCookie();
         const r = await api.saveCart({
           email: emailToUse,
           cart_id: cartId ?? undefined,
-          photo_id: pidToUse ?? undefined,
-          engraving_text: engravingText || undefined,
-          spotify_url: spotifyUrl || undefined,
-          product_id: product.id,
+          items: itemsToUse.map((it) => ({
+            photo_id: it.photoId ?? undefined,
+            engraving_text: it.engravingText || undefined,
+            spotify_url: it.spotifyUrl || undefined,
+            product_id: it.productId,
+            quantity: it.quantity,
+          })),
           utm_source: utm_source ?? undefined,
           utm_medium: utm_medium ?? undefined,
           utm_campaign: utm_campaign ?? undefined,
+          utm_content: utm_content ?? undefined,
+          utm_term: utm_term ?? undefined,
           fbclid: fbclid ?? undefined,
           fbp: fbp ?? undefined,
         });
@@ -82,21 +121,42 @@ function CheckoutContent() {
         /* non-critical */
       }
     },
-    [cartId, email, photoId, engravingText, spotifyUrl, product.id],
+    [cartId, email, items],
   );
 
-  // Restore cart from recovery email link (?cart=xxx)
+  // Restore cart from recovery email link (?cart_id=xxx)
   useEffect(() => {
     if (!urlCartId) return;
     api
       .getCart(urlCartId)
-      .then((cart) => {
+      .then(async (cart) => {
         setCartId(urlCartId);
         if (cart.email) setEmail(cart.email);
-        if (cart.photo_id) setPhotoId(cart.photo_id);
-        if (cart.engraving_text) setEngravingText(cart.engraving_text);
-        if (cart.spotify_url) setSpotifyUrl(cart.spotify_url);
-        if (cart.photo_id) setStep('details');
+        if (cart.items?.length) {
+          const restored: CartItemState[] = await Promise.all(
+            cart.items.map(async (ci, idx) => {
+              let preview: string | null = null;
+              if (ci.photo_id) {
+                try {
+                  const { url } = await api.getPhotoUrl(ci.photo_id);
+                  preview = url;
+                } catch {
+                  /* non-critical */
+                }
+              }
+              return {
+                localId: String(idx + 1),
+                photoId: ci.photo_id ?? null,
+                localPhotoPreview: preview,
+                engravingText: ci.engraving_text ?? '',
+                spotifyUrl: ci.spotify_url ?? '',
+                productId: (ci.product_id as ProductId) ?? 'rgb',
+                quantity: ci.quantity ?? 1,
+              };
+            }),
+          );
+          if (restored.length) setItems(restored);
+        }
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,16 +168,24 @@ function CheckoutContent() {
   }, [user?.email, email]);
 
   const handlePhotoUploaded = useCallback(
-    (id: string) => {
-      setPhotoId(id);
-      saveDraftToServer({ photoIdOverride: id });
+    (localId: string, photoId: string) => {
+      setItems((prev) => {
+        const updated = prev.map((it) =>
+          it.localId === localId ? { ...it, photoId } : it,
+        );
+        saveDraftToServer({ itemsOverride: updated }).catch(() => {});
+        return updated;
+      });
     },
     [saveDraftToServer],
   );
 
   useEffect(() => {
     getEvent('InitiateCheckout').track({
-      value: product.price,
+      value: items.reduce(
+        (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+        0,
+      ),
       eventId: checkoutEventId,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,11 +206,11 @@ function CheckoutContent() {
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error de autenticación');
         setLoading(false);
-        return; // stay on photo step
+        return;
       }
       setLoading(false);
     }
-    // Save cart draft for abandoned-cart recovery (non-blocking)
+    // Save cart draft (non-blocking)
     if (email.trim()) saveDraftToServer({ emailOverride: email.trim() });
     setStep('details');
   };
@@ -164,7 +232,12 @@ function CheckoutContent() {
       }
     }
     setError(null);
-    getEvent('AddShippingInfo').track({ value: product.price });
+    getEvent('AddShippingInfo').track({
+      value: items.reduce(
+        (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+        0,
+      ),
+    });
     setStep('payment');
   };
 
@@ -199,44 +272,61 @@ function CheckoutContent() {
       }
     }
 
-    try {
-      const attribution = getStoredAttribution();
-      const fbp = getFbpCookie();
+    // Ensure cart exists before creating order
+    let finalCartId = cartId;
+    if (!finalCartId) {
+      try {
+        const {
+          utm_source,
+          utm_medium,
+          utm_campaign,
+          utm_content,
+          utm_term,
+          fbclid,
+        } = getStoredAttribution() ?? {};
+        const fbp = getFbpCookie();
+        const r = await api.saveCart({
+          email: email.trim() || user?.email || '',
+          items: items.map((it) => ({
+            photo_id: it.photoId ?? undefined,
+            engraving_text: it.engravingText || undefined,
+            spotify_url: it.spotifyUrl || undefined,
+            product_id: it.productId,
+            quantity: it.quantity,
+          })),
+          utm_source: utm_source ?? undefined,
+          utm_medium: utm_medium ?? undefined,
+          utm_campaign: utm_campaign ?? undefined,
+          utm_content: utm_content ?? undefined,
+          utm_term: utm_term ?? undefined,
+          fbclid: fbclid ?? undefined,
+          fbp: fbp ?? undefined,
+        });
+        finalCartId = r.cart_id;
+        setCartId(finalCartId);
+      } catch {
+        setError('Error al preparar el pedido. Inténtalo de nuevo.');
+        setLoading(false);
+        return;
+      }
+    }
 
+    try {
       const result = await api.post<{
         order_id: string;
         mp_sandbox_init_point: string;
         mp_init_point: string;
       }>('/api/orders/', {
-        photo_id: photoId,
-        ...(engravingText.trim()
-          ? { engraving_text: engravingText.trim() }
-          : {}),
-        ...(spotifyUrl.trim() ? { spotify_url: spotifyUrl.trim() } : {}),
-        product_name: product.name,
-        unit_price: product.price,
+        cart_id: finalCartId,
         shipping,
-        // Attribution data for internal reporting + CAPI deduplication
         checkout_event_id: checkoutEventId,
-        ...(attribution?.utm_source
-          ? { utm_source: attribution.utm_source }
-          : {}),
-        ...(attribution?.utm_medium
-          ? { utm_medium: attribution.utm_medium }
-          : {}),
-        ...(attribution?.utm_campaign
-          ? { utm_campaign: attribution.utm_campaign }
-          : {}),
-        ...(attribution?.utm_content
-          ? { utm_content: attribution.utm_content }
-          : {}),
-        ...(attribution?.utm_term ? { utm_term: attribution.utm_term } : {}),
-        ...(attribution?.fbclid ? { fbclid: attribution.fbclid } : {}),
-        ...(fbp ? { fbp } : {}),
       });
       const isDev = process.env.NODE_ENV === 'development';
       getEvent('AddPaymentInfo').track({
-        value: product.price,
+        value: items.reduce(
+          (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+          0,
+        ),
         eventId: `api_${result.order_id}`,
       });
       if (cartId) api.convertCart(cartId).catch(() => {});
@@ -263,8 +353,6 @@ function CheckoutContent() {
     );
   }
 
-  const photoUrl = localPhotoPreview;
-
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-14 md:pt-20 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
@@ -274,37 +362,28 @@ function CheckoutContent() {
 
         <StepIndicator steps={steps} currentStep={step} onStepClick={setStep} />
 
-        {photoUrl && step === 'payment' && (
-          <div className="flex items-center gap-4 bg-white/3 border border-white/10 rounded-2xl p-4 mb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoUrl}
-              alt="Tu foto"
-              className="w-16 h-16 object-cover rounded-xl border border-amber-500/20 shrink-0"
-            />
-            <div>
-              <p className="font-semibold text-sm">{product.name}</p>
-              <p className="text-white/40 text-sm">
-                ×1 — ${product.price} MXN · envío gratis
-              </p>
-            </div>
-            <div className="ml-auto text-amber-400 font-bold text-lg">
-              ${product.price}
-            </div>
-          </div>
-        )}
-
         <div className="bg-white/3 border border-white/10 rounded-2xl p-5 md:p-8">
           {step === 'photo' && (
             <PhotoStep
-              localPhotoPreview={localPhotoPreview}
-              onLocalPreviewChange={setLocalPhotoPreview}
+              items={items}
+              onProductChange={(localId, productId) =>
+                updateItem(localId, { productId })
+              }
+              onQuantityChange={(localId, quantity) =>
+                updateItem(localId, { quantity })
+              }
               onPhotoUploaded={handlePhotoUploaded}
-              photoId={photoId}
-              engravingText={engravingText}
-              setEngravingText={setEngravingText}
-              spotifyUrl={spotifyUrl}
-              setSpotifyUrl={setSpotifyUrl}
+              onPreviewChange={(localId, preview) =>
+                updateItem(localId, { localPhotoPreview: preview })
+              }
+              onEngravingChange={(localId, text) =>
+                updateItem(localId, { engravingText: text })
+              }
+              onSpotifyChange={(localId, url) =>
+                updateItem(localId, { spotifyUrl: url })
+              }
+              onAddItem={handleAddItem}
+              onRemoveItem={handleRemoveItem}
               isLoggedIn={!!user}
               accountMode={accountMode}
               setAccountMode={setAccountMode}
@@ -331,11 +410,8 @@ function CheckoutContent() {
 
           {step === 'payment' && (
             <PaymentStep
-              product={product}
-              localPhotoPreview={localPhotoPreview}
+              items={items}
               shipping={shipping}
-              engravingText={engravingText}
-              spotifyUrl={spotifyUrl}
               user={user}
               error={error}
               loading={loading}

@@ -30,18 +30,13 @@ def _compact(d: dict) -> dict:
 def upsert_cart(body: UpsertCartRequest) -> dict:
     """Create a new cart draft or update an existing one (idempotent via cart_id)."""
     table = database.carts_table()
+    items_data = [_compact(item.model_dump()) for item in body.items]
 
     # Update existing cart when the frontend sends back the cart_id it received
     if body.cart_id:
         existing = table.get_item(Key={"cart_id": body.cart_id}).get("Item")
         if existing and existing.get("status") not in ("converted", "expired"):
-            updates: dict = {"updated_at": _now_iso()}
-            if body.photo_id:
-                updates["photo_id"] = body.photo_id
-            if body.engraving_text is not None:
-                updates["engraving_text"] = body.engraving_text
-            if body.spotify_url is not None:
-                updates["spotify_url"] = body.spotify_url
+            updates: dict = {"updated_at": _now_iso(), "items": items_data}
 
             set_expr = ", ".join(f"#k_{k} = :v_{k}" for k in updates)
             expr_names = {f"#k_{k}": k for k in updates}
@@ -60,14 +55,13 @@ def upsert_cart(body: UpsertCartRequest) -> dict:
     table.put_item(Item=_compact({
         "cart_id": cart_id,
         "email": str(body.email),
-        "photo_id": body.photo_id,
-        "engraving_text": body.engraving_text,
-        "spotify_url": body.spotify_url,
-        "product_id": body.product_id,
+        "items": items_data,
         "status": "active",
         "utm_source": body.utm_source,
         "utm_medium": body.utm_medium,
         "utm_campaign": body.utm_campaign,
+        "utm_content": body.utm_content,
+        "utm_term": body.utm_term,
         "fbclid": body.fbclid,
         "fbp": body.fbp,
         "created_at": _now_iso(),
@@ -78,17 +72,14 @@ def upsert_cart(body: UpsertCartRequest) -> dict:
 
 
 def get_cart(cart_id: str) -> dict:
-    """Return only the fields needed to restore a checkout session."""
+    """Return the cart fields needed to restore a checkout session."""
     item = database.carts_table().get_item(Key={"cart_id": cart_id}).get("Item")
     if not item or item.get("status") in ("converted", "expired"):
         raise HTTPException(status_code=404, detail="Cart not found or already converted")
     return {
         "cart_id": item["cart_id"],
         "email": item.get("email", ""),
-        "photo_id": item.get("photo_id"),
-        "engraving_text": item.get("engraving_text"),
-        "spotify_url": item.get("spotify_url"),
-        "product_id": item.get("product_id", "rgb"),
+        "items": item.get("items", []),
     }
 
 
@@ -132,7 +123,8 @@ def process_abandoned_carts() -> None:
         cart_id = cart["cart_id"]
         status = cart.get("status")
         email = cart.get("email")
-        product_id = cart.get("product_id", "rgb")
+        cart_items = cart.get("items", [])
+        product_id = cart_items[0].get("product_id", "rgb") if cart_items else "rgb"
 
         if not email:
             continue

@@ -49,17 +49,26 @@ export const api = {
     return res.json();
   },
 
+  /** Get a short-lived presigned URL for a previously uploaded photo. */
+  getPhotoUrl: (photoId: string): Promise<{ url: string }> =>
+    request(`/api/photos/${photoId}/url`),
+
   /** Save / update abandoned-cart draft. Returns the cart_id. */
   saveCart: (body: {
     email: string;
     cart_id?: string;
-    photo_id?: string;
-    engraving_text?: string;
-    spotify_url?: string;
-    product_id: string;
+    items?: {
+      photo_id?: string;
+      engraving_text?: string;
+      spotify_url?: string;
+      product_id: string;
+      quantity: number;
+    }[];
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
     fbclid?: string;
     fbp?: string;
   }): Promise<{ cart_id: string }> =>
@@ -71,10 +80,13 @@ export const api = {
   ): Promise<{
     cart_id: string;
     email: string;
-    photo_id: string | null;
-    engraving_text: string | null;
-    spotify_url: string | null;
-    product_id: string;
+    items: {
+      photo_id?: string | null;
+      engraving_text?: string | null;
+      spotify_url?: string | null;
+      product_id: string;
+      quantity: number;
+    }[];
   }> => request(`/api/carts/${cartId}`),
 
   /** Mark a cart as converted so no more recovery emails are sent. */

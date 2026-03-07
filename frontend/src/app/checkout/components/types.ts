@@ -1,5 +1,15 @@
 export type Step = 'photo' | 'details' | 'payment';
 
+export interface CartItemState {
+  localId: string;
+  photoId: string | null;
+  localPhotoPreview: string | null;
+  engravingText: string;
+  spotifyUrl: string;
+  productId: ProductId;
+  quantity: number;
+}
+
 export type ProductId = 'rgb' | 'madera';
 
 export interface ProductConfig {

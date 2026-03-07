@@ -37,3 +37,12 @@ def save_photo(raw: bytes, content_type: str | None, user_email: str) -> dict:
     })
 
     return {"photo_id": photo_id}
+
+
+def get_photo_url(photo_id: str) -> dict:
+    """Return a presigned URL for a previously uploaded photo."""
+    item = database.photos_table().get_item(Key={"photo_id": photo_id}).get("Item")
+    if not item:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    url = s3_helper.get_presigned_url(item["s3_key"], expires_in=300)
+    return {"url": url}

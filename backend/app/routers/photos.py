@@ -15,3 +15,9 @@ async def upload_photo(
     raw = await file.read()
     user_email = user["sub"] if user else "anonymous"
     return photos_service.save_photo(raw, file.content_type, user_email)
+
+
+@router.get("/{photo_id}/url")
+async def get_photo_url(photo_id: str):
+    """Return a short-lived presigned S3 URL for a photo (used to restore cart preview)."""
+    return photos_service.get_photo_url(photo_id)
