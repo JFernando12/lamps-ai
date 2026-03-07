@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from ..dependencies import get_current_user
 from ..schemas.orders import CreateOrderRequest
@@ -8,8 +8,16 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 
 
 @router.post("/", status_code=201)
-def create_order(body: CreateOrderRequest, user: dict = Depends(get_current_user)):
-    return orders_service.create_order(body, user["sub"])
+def create_order(body: CreateOrderRequest, request: Request, user: dict = Depends(get_current_user)):
+    # Extract real client IP (handles AWS App Runner / Nginx proxies)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    client_ip = (
+        forwarded_for.split(",")[0].strip()
+        if forwarded_for
+        else (request.client.host if request.client else None)
+    )
+    user_agent = request.headers.get("User-Agent")
+    return orders_service.create_order(body, user["sub"], client_ip=client_ip, user_agent=user_agent)
 
 
 @router.get("/mine")

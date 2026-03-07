@@ -21,6 +21,18 @@ class CreateOrderRequest(BaseModel):
     quantity: int = 1
     unit_price: float = 598  # MXN
 
+    # ── Attribution (UTMs + Facebook click ID) ─────────────────
+    # Sent by the frontend from localStorage; stored in DynamoDB for internal
+    # reporting and forwarded to CAPI for better attribution.
+    checkout_event_id: str | None = None  # dedup key for InitiateCheckout CAPI event
+    utm_source: str | None = None
+    utm_medium: str | None = None
+    utm_campaign: str | None = None
+    utm_content: str | None = None
+    utm_term: str | None = None
+    fbclid: str | None = None   # Facebook click ID (from ?fbclid= URL param)
+    fbp: str | None = None      # _fbp cookie value
+
     @model_validator(mode='after')
     def check_source(self):
         if not self.photo_id and not self.preview_id:

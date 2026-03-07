@@ -122,6 +122,8 @@ function OrderStatusContent() {
         setOrder(order);
         if (paymentStatus === 'success' && !hasFiredPurchase.current) {
           hasFiredPurchase.current = true;
+          // Use order_id as eventID so Meta deduplicates with the CAPI Purchase
+          // event sent from the backend when the payment was confirmed.
           (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
             'track',
             'Purchase',
@@ -130,6 +132,17 @@ function OrderStatusContent() {
               currency: 'MXN',
               content_name: order.product_name,
               content_ids: [order.order_id],
+            },
+            { eventID: order.order_id },
+          );
+        }
+        if (paymentStatus === 'failure') {
+          (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+            'trackCustom',
+            'PaymentFailed',
+            {
+              value: parseFloat(order.unit_price) * order.quantity,
+              currency: 'MXN',
             },
           );
         }

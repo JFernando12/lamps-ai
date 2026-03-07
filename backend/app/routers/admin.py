@@ -24,3 +24,13 @@ def update_order_status(
 @router.get("/stats")
 def stats(_admin=Depends(get_current_admin)):
     return admin_service.get_stats()
+
+
+@router.get("/ads/attribution")
+def ads_attribution(_admin=Depends(get_current_admin)):
+    return admin_service.get_ads_attribution()
+
+
+@router.get("/ads/config")
+def ads_config(_admin=Depends(get_current_admin)):
+    return admin_service.get_ads_config()

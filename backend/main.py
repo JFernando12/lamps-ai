@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import config
 from app.routers.ai import router as ai_router
 from app.routers.auth import router as auth_router
+from app.routers.catalog import router as catalog_router
 from app.routers.photos import router as photos_router
 from app.routers.orders import router as orders_router
 from app.routers.admin import router as admin_router
@@ -23,6 +24,7 @@ app.include_router(auth_router)
 app.include_router(photos_router)
 app.include_router(orders_router)
 app.include_router(admin_router)
+app.include_router(catalog_router)
 
 
 @app.get("/health")

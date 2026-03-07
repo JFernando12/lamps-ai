@@ -54,6 +54,12 @@ export function FaqSection() {
             href="https://wa.me/527551155510"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+                'track',
+                'Contact',
+              )
+            }
             className="text-amber-400 hover:underline"
           >
             Escríbenos por WhatsApp

@@ -45,9 +45,15 @@ export function PhotoStep({
       try {
         const result = await api.uploadPhoto(file);
         onPhotoUploaded(result.photo_id);
+        const eventId =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? `photo_${crypto.randomUUID().replace(/-/g, '')}`
+            : `photo_${Date.now()}`;
         (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
           'trackCustom',
           'PhotoUploaded',
+          {},
+          { eventID: eventId },
         );
       } catch (e: unknown) {
         setUploadError(

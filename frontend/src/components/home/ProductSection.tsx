@@ -1,5 +1,14 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Shield, Sparkles, Zap, Flame } from 'lucide-react';
+
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
 
 const PRODUCTS = [
   {
@@ -55,8 +64,32 @@ const PRODUCTS = [
 ];
 
 export function ProductSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Fire ViewContent once when the section scrolls into view
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          window.fbq?.('track', 'ViewContent', {
+            content_ids: ['rgb', 'madera'],
+            content_type: 'product',
+            value: 598,
+            currency: 'MXN',
+          });
+        }
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section id="pedido" className="py-12 md:py-24 px-4">
+    <section id="pedido" ref={sectionRef} className="py-12 md:py-24 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-3">
@@ -151,6 +184,14 @@ export function ProductSection() {
               {/* CTA */}
               <a
                 href={p.href}
+                onClick={() =>
+                  window.fbq?.('track', 'AddToCart', {
+                    content_ids: [p.id],
+                    content_type: 'product',
+                    value: p.price,
+                    currency: 'MXN',
+                  })
+                }
                 className={`w-full flex items-center justify-center gap-2 font-bold px-6 py-4 rounded-2xl text-base transition-all hover:scale-[1.03] active:scale-100 ${p.btnClass}`}
               >
                 {p.id === 'rgb' ? <Flame size={18} /> : <Sparkles size={18} />}

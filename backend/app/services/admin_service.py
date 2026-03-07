@@ -118,3 +118,78 @@ def get_stats() -> dict:
             (len(orders) / total_uploads * 100) if total_uploads else 0, 1
         ),
     }
+
+
+_PAID_STATUSES = ("paid", "in_process", "shipped", "delivered")
+
+
+def get_ads_attribution() -> dict:
+    """Returns UTM-based funnel breakdown for the Ads admin panel."""
+    orders = _scan_all(database.orders_table())
+
+    # ── Funnel by source ──────────────────────────────────────
+    funnel: dict[str, dict] = {}
+    for o in orders:
+        src = o.get("utm_source") or "(directo)"
+        if src not in funnel:
+            funnel[src] = {"source": src, "initiated": 0, "paid": 0, "revenue": 0.0}
+        funnel[src]["initiated"] += 1
+        if o.get("status") in _PAID_STATUSES:
+            funnel[src]["paid"] += 1
+            funnel[src]["revenue"] += float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
+
+    funnel_list = []
+    for v in sorted(funnel.values(), key=lambda x: x["revenue"], reverse=True):
+        v["cvr_pct"] = round(v["paid"] / v["initiated"] * 100, 1) if v["initiated"] else 0.0
+        funnel_list.append(v)
+
+    # ── Breakdown by campaign ─────────────────────────────────
+    campaigns: dict[str, dict] = {}
+    for o in orders:
+        if not o.get("utm_campaign"):
+            continue
+        key = f"{o.get('utm_source', '')}|{o.get('utm_campaign', '')}"
+        if key not in campaigns:
+            campaigns[key] = {
+                "utm_source": o.get("utm_source", ""),
+                "utm_campaign": o.get("utm_campaign", ""),
+                "utm_content": o.get("utm_content", ""),
+                "initiated": 0,
+                "paid": 0,
+                "revenue": 0.0,
+            }
+        campaigns[key]["initiated"] += 1
+        if o.get("status") in _PAID_STATUSES:
+            campaigns[key]["paid"] += 1
+            campaigns[key]["revenue"] += float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
+
+    campaign_list = sorted(campaigns.values(), key=lambda x: x["revenue"], reverse=True)
+    for c in campaign_list:
+        c["cvr_pct"] = round(c["paid"] / c["initiated"] * 100, 1) if c["initiated"] else 0.0
+
+    # ── Summary ───────────────────────────────────────────────
+    ads_paid = [o for o in orders if o.get("utm_source") and o.get("status") in _PAID_STATUSES]
+    ads_initiated = [o for o in orders if o.get("utm_source")]
+    ads_revenue = sum(
+        float(o.get("unit_price", 0)) * int(o.get("quantity", 1)) for o in ads_paid
+    )
+
+    return {
+        "funnel_by_source": funnel_list,
+        "by_campaign": campaign_list,
+        "summary": {
+            "total_attributed_orders": len(ads_paid),
+            "total_attributed_revenue": round(ads_revenue, 2),
+            "total_initiated": len(ads_initiated),
+        },
+    }
+
+
+def get_ads_config() -> dict:
+    """Returns current Ads / CAPI configuration status (no secrets exposed)."""
+    from .. import config as cfg
+    return {
+        "pixel_id": cfg.META_PIXEL_ID or None,
+        "capi_configured": bool(cfg.META_PIXEL_ID and cfg.META_ACCESS_TOKEN),
+        "api_version": "v21.0",
+    }

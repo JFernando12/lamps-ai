@@ -3,19 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, LogOut, Zap } from "lucide-react";
+import { LayoutDashboard, LogOut, Zap, BarChart3 } from 'lucide-react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   const handleLogout = () => {
     logout();
-    router.push("/admin/login");
+    router.push('/admin/login');
   };
 
-  const isLoginPage = pathname === "/admin/login";
+  const isLoginPage = pathname === '/admin/login';
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
@@ -39,7 +43,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }`}
             >
               <LayoutDashboard size={15} />
-              Dashboard
+              Pedidos
+            </Link>
+            <Link
+              href="/admin/ads"
+              className={`flex items-center gap-1.5 transition-colors ${
+                pathname.startsWith('/admin/ads')
+                  ? 'text-amber-400'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <BarChart3 size={15} />
+              Ads
             </Link>
             <button
               onClick={handleLogout}

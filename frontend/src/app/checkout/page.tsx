@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { getStoredAttribution, getFbpCookie } from '@/lib/utm';
 import {
   Step,
   ShippingForm,
@@ -16,11 +17,29 @@ import { PhotoStep } from './components/PhotoStep';
 import { DetailsStep } from './components/DetailsStep';
 import { PaymentStep } from './components/PaymentStep';
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
+function genEventId(prefix: string): string {
+  const rand =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Math.random().toString(36).slice(2);
+  return `${prefix}_${rand}`;
+}
+
 function CheckoutContent() {
   const params = useSearchParams();
   const { user, login, register, loading: authLoading } = useAuth();
   const urlPreviewId = params.get('preview_id') ?? '';
   const product: ProductConfig = getProduct(params.get('product'));
+
+  // Stable event_id for InitiateCheckout — generated once on mount so the
+  // backend CAPI call and browser pixel event share the same ID (dedup).
+  const [checkoutEventId] = useState<string>(() => genEventId('ic'));
 
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(
@@ -49,10 +68,11 @@ function CheckoutContent() {
   }, [urlPreviewId]);
 
   useEffect(() => {
-    (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+    window.fbq?.(
       'track',
       'InitiateCheckout',
       { value: product.price, currency: 'MXN', num_items: 1 },
+      { eventID: checkoutEventId },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -79,9 +99,11 @@ function CheckoutContent() {
       try {
         if (accountMode === 'register') {
           await register(email, password, name);
-          (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+          window.fbq?.(
             'track',
             'CompleteRegistration',
+            {},
+            { eventID: genEventId('reg') },
           );
         } else {
           await login(email, password);
@@ -93,10 +115,11 @@ function CheckoutContent() {
       }
       setLoading(false);
     }
-    (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+    window.fbq?.(
       'track',
       'AddShippingInfo',
       { value: product.price, currency: 'MXN' },
+      { eventID: genEventId('si') },
     );
     setStep('payment');
   };
@@ -105,6 +128,9 @@ function CheckoutContent() {
     setLoading(true);
     setError(null);
     try {
+      const attribution = getStoredAttribution();
+      const fbp = getFbpCookie();
+
       const result = await api.post<{
         order_id: string;
         mp_sandbox_init_point: string;
@@ -120,12 +146,30 @@ function CheckoutContent() {
         product_name: product.name,
         unit_price: product.price,
         shipping,
+        // Attribution data for internal reporting + CAPI deduplication
+        checkout_event_id: checkoutEventId,
+        ...(attribution?.utm_source
+          ? { utm_source: attribution.utm_source }
+          : {}),
+        ...(attribution?.utm_medium
+          ? { utm_medium: attribution.utm_medium }
+          : {}),
+        ...(attribution?.utm_campaign
+          ? { utm_campaign: attribution.utm_campaign }
+          : {}),
+        ...(attribution?.utm_content
+          ? { utm_content: attribution.utm_content }
+          : {}),
+        ...(attribution?.utm_term ? { utm_term: attribution.utm_term } : {}),
+        ...(attribution?.fbclid ? { fbclid: attribution.fbclid } : {}),
+        ...(fbp ? { fbp } : {}),
       });
       const isDev = process.env.NODE_ENV === 'development';
-      (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
+      window.fbq?.(
         'track',
         'AddPaymentInfo',
         { value: product.price, currency: 'MXN' },
+        { eventID: `api_${result.order_id}` },
       );
       window.location.href = isDev
         ? result.mp_sandbox_init_point

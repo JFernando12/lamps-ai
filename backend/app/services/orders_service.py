@@ -15,7 +15,17 @@ from . import meta_service
 logger = logging.getLogger(__name__)
 
 
-def create_order(body: CreateOrderRequest, user_email: str) -> dict:
+def _compact(d: dict) -> dict:
+    """Remove keys whose value is None — DynamoDB rejects null attribute values."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
+def create_order(
+    body: CreateOrderRequest,
+    user_email: str,
+    client_ip: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
     order_id = str(uuid.uuid4())
 
     # Build MercadoPago preference
@@ -52,8 +62,8 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
 
     preference = pref_response["response"]
 
-    # Persist order
-    database.orders_table().put_item(Item={
+    # Persist order (compact removes None values — DynamoDB rejects nulls)
+    item = _compact({
         "order_id": order_id,
         "user_email": user_email,
         "photo_id": body.photo_id,
@@ -66,10 +76,20 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
         "shipping": body.shipping.model_dump(),
         "status": "pending_payment",
         "mp_preference_id": preference["id"],
-        "mp_payment_id": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
+        # Attribution
+        "utm_source": body.utm_source,
+        "utm_medium": body.utm_medium,
+        "utm_campaign": body.utm_campaign,
+        "utm_content": body.utm_content,
+        "utm_term": body.utm_term,
+        "fbclid": body.fbclid,
+        "fbp": body.fbp,
+        "client_ip": client_ip,
+        "user_agent": user_agent,
     })
+    database.orders_table().put_item(Item=item)
 
     # Link source asset → order
     if body.preview_id:
@@ -84,7 +104,16 @@ def create_order(body: CreateOrderRequest, user_email: str) -> dict:
             UpdateExpression="SET order_id = :oid",
             ExpressionAttributeValues={":oid": order_id},
         )
-    meta_service.track_initiate_checkout(order_id, user_email, float(body.unit_price) * body.quantity)
+    meta_service.track_initiate_checkout(
+        order_id,
+        user_email,
+        float(body.unit_price) * body.quantity,
+        checkout_event_id=body.checkout_event_id,
+        client_ip=client_ip,
+        user_agent=user_agent,
+        fbclid=body.fbclid,
+        fbp=body.fbp,
+    )
     return {
         "order_id": order_id,
         "mp_init_point": preference["init_point"],
