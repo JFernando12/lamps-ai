@@ -98,6 +98,20 @@ TABLES = [
         ],
     },
 
+    # ── Carts (abandoned checkout drafts) ────────────────────────
+    # Primary key : cart_id (uuid)
+    # TTL         : expires_ttl — DynamoDB auto-deletes carts after 30 days
+    {
+        "TableName": config.DYNAMO_TABLE_CARTS,
+        "KeySchema": [
+            {"AttributeName": "cart_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "cart_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+
 ]
 
 
@@ -116,9 +130,23 @@ def wait_active(name: str) -> None:
     print("done.")
 
 
+def enable_ttl(name: str, attr: str) -> None:
+    try:
+        client.update_time_to_live(
+            TableName=name,
+            TimeToLiveSpecification={"AttributeName": attr, "Enabled": True},
+        )
+        print(f"  TTL enabled on '{name}' (attribute: {attr})")
+    except ClientError as e:
+        # ValidationException is raised if TTL is already enabled — safe to ignore
+        if e.response["Error"]["Code"] != "ValidationException":
+            print(f"  Warning: could not enable TTL on '{name}': {e}", file=sys.stderr)
+
+
 def create_tables() -> None:
     print(f"Region  : {config.AWS_REGION}")
-    print(f"Tables  : {config.DYNAMO_TABLE_USERS}, {config.DYNAMO_TABLE_PREVIEWS}, {config.DYNAMO_TABLE_ORDERS}")
+    print(f"Tables  : {config.DYNAMO_TABLE_USERS}, {config.DYNAMO_TABLE_PHOTOS}, "
+          f"{config.DYNAMO_TABLE_PREVIEWS}, {config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}")
     print()
 
     for schema in TABLES:
@@ -131,6 +159,9 @@ def create_tables() -> None:
         try:
             client.create_table(**schema)
             wait_active(name)
+            # Enable TTL for the carts table after it becomes active
+            if name == config.DYNAMO_TABLE_CARTS:
+                enable_ttl(name, "expires_ttl")
             print(f"[ok]     '{name}' created.")
         except ClientError as e:
             print(f"[error]  '{name}': {e.response['Error']['Message']}", file=sys.stderr)

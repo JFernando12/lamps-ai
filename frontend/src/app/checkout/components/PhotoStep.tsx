@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Upload, Type, Music } from 'lucide-react';
+import { Upload, Type, Music, CheckCircle2, Package } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '@/lib/api';
 import { getEvent } from '@/lib/pixelEvents';
@@ -13,6 +13,16 @@ interface Props {
   setEngravingText: (v: string) => void;
   spotifyUrl: string;
   setSpotifyUrl: (v: string) => void;
+  // Cuenta opcional
+  isLoggedIn: boolean;
+  accountMode: 'login' | 'register';
+  setAccountMode: (v: 'login' | 'register') => void;
+  email: string;
+  setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  error: string | null;
+  loading: boolean;
   onContinue: () => void;
 }
 
@@ -25,6 +35,15 @@ export function PhotoStep({
   setEngravingText,
   spotifyUrl,
   setSpotifyUrl,
+  isLoggedIn,
+  accountMode,
+  setAccountMode,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  error,
+  loading,
   onContinue,
 }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -91,15 +110,6 @@ export function PhotoStep({
         className="hidden"
         onChange={onFileChange}
       />
-      <input
-        id="checkout-camera-input"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={onFileChange}
-      />
-
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -122,6 +132,15 @@ export function PhotoStep({
             alt="Tu foto"
             className="max-h-48 object-contain rounded-xl"
           />
+        ) : photoId ? (
+          /* Draft restored — photo is on the server but preview not cached */
+          <div className="flex flex-col items-center gap-2">
+            <CheckCircle2 size={40} className="text-amber-400" />
+            <p className="font-semibold">Foto guardada ✓</p>
+            <p className="text-white/40 text-sm">
+              Toca para cambiarla si quieres
+            </p>
+          </div>
         ) : (
           <>
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3">
@@ -149,18 +168,6 @@ export function PhotoStep({
           </div>
         )}
       </div>
-
-      {!localPhotoPreview && !uploading && (
-        <button
-          type="button"
-          onClick={() =>
-            document.getElementById('checkout-camera-input')?.click()
-          }
-          className="md:hidden w-full flex items-center justify-center gap-2 border border-white/10 hover:border-amber-400/30 text-white/60 py-3 rounded-xl text-sm transition-colors touch-manipulation"
-        >
-          📷 Abrir cámara
-        </button>
-      )}
 
       {uploadError && (
         <p className="text-red-400 text-sm text-center">{uploadError}</p>
@@ -216,13 +223,58 @@ export function PhotoStep({
         </div>
       </div>
 
+      {/* ── Cuenta opcional ───────────────────────────────────────── */}
+      {!isLoggedIn && (
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <div className="flex items-center gap-2 text-white/40 text-xs">
+            <Package size={13} className="text-amber-400/70 shrink-0" />
+            <p>Opcional — crea una cuenta para rastrear tu pedido.</p>
+          </div>
+
+          <div className="flex gap-2 p-1 bg-white/5 rounded-xl">
+            {(['register', 'login'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setAccountMode(m)}
+                className={clsx(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                  accountMode === m
+                    ? 'bg-amber-500 text-black'
+                    : 'text-white/50 hover:text-white',
+                )}
+              >
+                {m === 'register' ? 'Crear cuenta' : 'Ya tengo cuenta'}
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 transition-colors text-sm"
+          />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 transition-colors text-sm"
+          />
+
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+        </div>
+      )}
+
       <button
         type="button"
-        disabled={!photoId || uploading}
+        disabled={!photoId || uploading || loading}
         onClick={onContinue}
         className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed mt-2"
       >
-        Continuar
+        {loading ? 'Cargando…' : 'Continuar'}
       </button>
     </div>
   );

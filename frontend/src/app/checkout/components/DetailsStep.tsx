@@ -1,20 +1,10 @@
-import { MapPin, Package } from 'lucide-react';
-import clsx from 'clsx';
-import { ShippingForm, User } from './types';
+import { MapPin } from 'lucide-react';
+import { ShippingForm } from './types';
 import { Field } from './Field';
 
 interface Props {
   shipping: ShippingForm;
   onShippingChange: (s: ShippingForm) => void;
-  user: User | null;
-  accountMode: 'login' | 'register';
-  setAccountMode: (m: 'login' | 'register') => void;
-  email: string;
-  setEmail: (v: string) => void;
-  name: string;
-  setName: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
   error: string | null;
   loading: boolean;
   urlPreviewId: string;
@@ -25,15 +15,6 @@ interface Props {
 export function DetailsStep({
   shipping,
   onShippingChange,
-  user,
-  accountMode,
-  setAccountMode,
-  email,
-  setEmail,
-  name,
-  setName,
-  password,
-  setPassword,
   error,
   loading,
   urlPreviewId,
@@ -87,55 +68,6 @@ export function DetailsStep({
         value={shipping.country}
         onChange={(v) => onShippingChange({ ...shipping, country: v })}
       />
-
-      {!user && (
-        <>
-          <div className="flex items-center gap-3 pt-2">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-white/30 text-xs">tu cuenta</span>
-            <div className="flex-1 h-px bg-white/10" />
-          </div>
-
-          <div className="flex items-center gap-2.5 text-xs text-white/40">
-            <Package size={13} className="text-amber-400 shrink-0" />
-            <p>Para consultar el estado de tu pedido en cualquier momento.</p>
-          </div>
-
-          <div className="flex gap-2 p-1 bg-white/5 rounded-xl">
-            {(['register', 'login'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setAccountMode(m)}
-                className={clsx(
-                  'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
-                  accountMode === m
-                    ? 'bg-amber-500 text-black'
-                    : 'text-white/50 hover:text-white',
-                )}
-              >
-                {m === 'register' ? 'Crear cuenta' : 'Ya tengo cuenta'}
-              </button>
-            ))}
-          </div>
-
-          {accountMode === 'register' && (
-            <Field label="Nombre" value={name} onChange={setName} />
-          )}
-          <Field
-            label="Correo electrónico"
-            type="email"
-            value={email}
-            onChange={setEmail}
-          />
-          <Field
-            label="Contraseña"
-            type="password"
-            value={password}
-            onChange={setPassword}
-          />
-        </>
-      )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 

@@ -22,6 +22,11 @@ DYNAMO_TABLE_USERS = "lamps_users"
 DYNAMO_TABLE_PHOTOS = "lamps_photos"
 DYNAMO_TABLE_PREVIEWS = "lamps_previews"
 DYNAMO_TABLE_ORDERS = "lamps_orders"
+DYNAMO_TABLE_CARTS = "lamps_carts"
+
+# ── Email (Amazon SES) ────────────────────────────────────────
+# Must be a verified sender in SES. Leave empty to disable cart emails.
+SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL", "")
 
 # ── JWT ───────────────────────────────────────────────────────
 JWT_ALGORITHM = "HS256"

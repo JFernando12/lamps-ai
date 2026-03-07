@@ -28,3 +28,7 @@ def previews_table():
 
 def orders_table():
     return get_table(config.DYNAMO_TABLE_ORDERS)
+
+
+def carts_table():
+    return get_table(config.DYNAMO_TABLE_CARTS)

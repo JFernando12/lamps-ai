@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -13,6 +13,7 @@ import {
   ProductConfig,
   getProduct,
 } from './components/types';
+
 import { StepIndicator } from './components/StepIndicator';
 import { PhotoStep } from './components/PhotoStep';
 import { DetailsStep } from './components/DetailsStep';
@@ -22,6 +23,7 @@ function CheckoutContent() {
   const params = useSearchParams();
   const { user, login, register, loading: authLoading } = useAuth();
   const urlPreviewId = params.get('preview_id') ?? '';
+  const urlCartId = params.get('cart') ?? '';
   const product: ProductConfig = getProduct(params.get('product'));
 
   // Stable event_id for InitiateCheckout — generated once on mount so the
@@ -38,13 +40,82 @@ function CheckoutContent() {
     'register',
   );
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewRenderUrl, setPreviewRenderUrl] = useState<string | null>(null);
   const [engravingText, setEngravingText] = useState('');
   const [spotifyUrl, setSpotifyUrl] = useState('');
+  // Cart draft (server-side abandoned cart recovery)
+  const [cartId, setCartId] = useState<string | null>(null);
+
+  // -------------------------------------------------------------------------
+  // Server-side cart draft helpers
+  // -------------------------------------------------------------------------
+  const saveDraftToServer = useCallback(
+    async (
+      opts: {
+        emailOverride?: string;
+        photoIdOverride?: string;
+      } = {},
+    ) => {
+      const emailToUse = opts.emailOverride ?? email;
+      if (!emailToUse || !emailToUse.includes('@')) return;
+      const pidToUse = opts.photoIdOverride ?? photoId;
+      try {
+        const { utm_source, utm_medium, utm_campaign, fbclid } =
+          getStoredAttribution() ?? {};
+        const fbp = getFbpCookie();
+        const r = await api.saveCart({
+          email: emailToUse,
+          cart_id: cartId ?? undefined,
+          photo_id: pidToUse ?? undefined,
+          engraving_text: engravingText || undefined,
+          spotify_url: spotifyUrl || undefined,
+          product_id: product.id,
+          utm_source: utm_source ?? undefined,
+          utm_medium: utm_medium ?? undefined,
+          utm_campaign: utm_campaign ?? undefined,
+          fbclid: fbclid ?? undefined,
+          fbp: fbp ?? undefined,
+        });
+        setCartId((prev) => prev ?? r.cart_id);
+      } catch {
+        /* non-critical */
+      }
+    },
+    [cartId, email, photoId, engravingText, spotifyUrl, product.id],
+  );
+
+  // Restore cart from recovery email link (?cart=xxx)
+  useEffect(() => {
+    if (!urlCartId) return;
+    api
+      .getCart(urlCartId)
+      .then((cart) => {
+        setCartId(urlCartId);
+        if (cart.email) setEmail(cart.email);
+        if (cart.photo_id) setPhotoId(cart.photo_id);
+        if (cart.engraving_text) setEngravingText(cart.engraving_text);
+        if (cart.spotify_url) setSpotifyUrl(cart.spotify_url);
+        if (cart.photo_id) setStep('details');
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync logged-in user email so the cart gets saved with their identity
+  useEffect(() => {
+    if (user?.email && !email) setEmail(user.email);
+  }, [user?.email, email]);
+
+  const handlePhotoUploaded = useCallback(
+    (id: string) => {
+      setPhotoId(id);
+      saveDraftToServer({ photoIdOverride: id });
+    },
+    [saveDraftToServer],
+  );
 
   useEffect(() => {
     if (!urlPreviewId) return;
@@ -62,6 +133,30 @@ function CheckoutContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handlePhotoNext = async () => {
+    // Auth is optional: only attempt if both email and password are filled
+    if (!user && email.trim() && password.trim()) {
+      setLoading(true);
+      setError(null);
+      try {
+        if (accountMode === 'register') {
+          await register(email.trim(), password, email.split('@')[0]);
+          getEvent('CompleteRegistration').track();
+        } else {
+          await login(email.trim(), password);
+        }
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Error de autenticación');
+        setLoading(false);
+        return; // stay on photo step
+      }
+      setLoading(false);
+    }
+    // Save cart draft for abandoned-cart recovery (non-blocking)
+    if (email.trim()) saveDraftToServer({ emailOverride: email.trim() });
+    setStep('details');
+  };
+
   const handleDetailsNext = async (e: React.FormEvent) => {
     e.preventDefault();
     const required = [
@@ -78,23 +173,7 @@ function CheckoutContent() {
         return;
       }
     }
-    if (!user) {
-      setLoading(true);
-      setError(null);
-      try {
-        if (accountMode === 'register') {
-          await register(email, password, name);
-          getEvent('CompleteRegistration').track();
-        } else {
-          await login(email, password);
-        }
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Error de autenticación');
-        setLoading(false);
-        return;
-      }
-      setLoading(false);
-    }
+    setError(null);
     getEvent('AddShippingInfo').track({ value: product.price });
     setStep('payment');
   };
@@ -102,6 +181,34 @@ function CheckoutContent() {
   const handlePlaceOrder = async () => {
     setLoading(true);
     setError(null);
+
+    // Auto-register before placing order: use provided email or a random guest identity.
+    if (!user) {
+      const guestEmail =
+        email.trim() ||
+        `guest_${Math.random().toString(36).slice(2)}@lamps-ai.mx`;
+      const guestPwd =
+        Math.random().toString(36).slice(2, 10) +
+        Math.random().toString(36).slice(2, 10);
+      const guestName = email.trim() ? email.split('@')[0] : 'Invitado';
+      try {
+        await register(guestEmail, guestPwd, guestName);
+      } catch (e: unknown) {
+        const msg = (e instanceof Error ? e.message : '').toLowerCase();
+        if (msg.includes('already') || msg.includes('409')) {
+          setError(
+            'Ya existe una cuenta con ese correo. Por favor inicia sesión en el primer paso.',
+          );
+        } else {
+          setError(
+            e instanceof Error ? e.message : 'Error al procesar tu pedido',
+          );
+        }
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const attribution = getStoredAttribution();
       const fbp = getFbpCookie();
@@ -144,6 +251,7 @@ function CheckoutContent() {
         value: product.price,
         eventId: `api_${result.order_id}`,
       });
+      if (cartId) api.convertCart(cartId).catch(() => {});
       window.location.href = isDev
         ? result.mp_sandbox_init_point
         : result.mp_init_point;
@@ -203,13 +311,22 @@ function CheckoutContent() {
             <PhotoStep
               localPhotoPreview={localPhotoPreview}
               onLocalPreviewChange={setLocalPhotoPreview}
-              onPhotoUploaded={setPhotoId}
+              onPhotoUploaded={handlePhotoUploaded}
               photoId={photoId}
               engravingText={engravingText}
               setEngravingText={setEngravingText}
               spotifyUrl={spotifyUrl}
               setSpotifyUrl={setSpotifyUrl}
-              onContinue={() => setStep('details')}
+              isLoggedIn={!!user}
+              accountMode={accountMode}
+              setAccountMode={setAccountMode}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              error={error}
+              loading={loading}
+              onContinue={handlePhotoNext}
             />
           )}
 
@@ -217,15 +334,6 @@ function CheckoutContent() {
             <DetailsStep
               shipping={shipping}
               onShippingChange={setShipping}
-              user={user}
-              accountMode={accountMode}
-              setAccountMode={setAccountMode}
-              email={email}
-              setEmail={setEmail}
-              name={name}
-              setName={setName}
-              password={password}
-              setPassword={setPassword}
               error={error}
               loading={loading}
               urlPreviewId={urlPreviewId}

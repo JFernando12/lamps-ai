@@ -77,4 +77,36 @@ export const api = {
     }
     return res.json();
   },
+
+  /** Save / update abandoned-cart draft. Returns the cart_id. */
+  saveCart: (body: {
+    email: string;
+    cart_id?: string;
+    photo_id?: string;
+    engraving_text?: string;
+    spotify_url?: string;
+    product_id: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    fbclid?: string;
+    fbp?: string;
+  }): Promise<{ cart_id: string }> =>
+    request('/api/carts/', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Restore a cart by ID (used when user clicks recovery email link). */
+  getCart: (
+    cartId: string,
+  ): Promise<{
+    cart_id: string;
+    email: string;
+    photo_id: string | null;
+    engraving_text: string | null;
+    spotify_url: string | null;
+    product_id: string;
+  }> => request(`/api/carts/${cartId}`),
+
+  /** Mark a cart as converted so no more recovery emails are sent. */
+  convertCart: (cartId: string): Promise<void> =>
+    request(`/api/carts/${cartId}/convert`, { method: 'POST' }),
 };
