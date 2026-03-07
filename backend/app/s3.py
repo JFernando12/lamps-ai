@@ -21,18 +21,6 @@ def upload_bytes(data: bytes, key: str, content_type: str = "image/png") -> str:
     return key
 
 
-def upload_preview(data: bytes, preview_id: str, suffix: str = "png") -> str:
-    """Upload a preview image and return its S3 key."""
-    key = f"previews/{preview_id}.{suffix}"
-    return upload_bytes(data, key, content_type=f"image/{suffix}")
-
-
-def upload_upload(data: bytes, preview_id: str, suffix: str = "png") -> str:
-    """Upload the original user-uploaded image and return its S3 key."""
-    key = f"uploads/{preview_id}_original.{suffix}"
-    return upload_bytes(data, key, content_type=f"image/{suffix}")
-
-
 def get_presigned_url(key: str, expires_in: int = 3600) -> str:
     """Return a presigned URL for reading an S3 object."""
     return _s3.generate_presigned_url(

@@ -22,7 +22,6 @@ import { PaymentStep } from './components/PaymentStep';
 function CheckoutContent() {
   const params = useSearchParams();
   const { user, login, register, loading: authLoading } = useAuth();
-  const urlPreviewId = params.get('preview_id') ?? '';
   const urlCartId = params.get('cart') ?? '';
   const product: ProductConfig = getProduct(params.get('product'));
 
@@ -34,7 +33,7 @@ function CheckoutContent() {
   const [localPhotoPreview, setLocalPhotoPreview] = useState<string | null>(
     null,
   );
-  const [step, setStep] = useState<Step>(urlPreviewId ? 'details' : 'photo');
+  const [step, setStep] = useState<Step>('photo');
   const [shipping, setShipping] = useState<ShippingForm>(EMPTY_SHIPPING);
   const [accountMode, setAccountMode] = useState<'login' | 'register'>(
     'register',
@@ -43,7 +42,6 @@ function CheckoutContent() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewRenderUrl, setPreviewRenderUrl] = useState<string | null>(null);
   const [engravingText, setEngravingText] = useState('');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   // Cart draft (server-side abandoned cart recovery)
@@ -116,14 +114,6 @@ function CheckoutContent() {
     },
     [saveDraftToServer],
   );
-
-  useEffect(() => {
-    if (!urlPreviewId) return;
-    api
-      .getPreview(urlPreviewId)
-      .then((r) => setPreviewRenderUrl(r.render_url ?? null))
-      .catch(() => {});
-  }, [urlPreviewId]);
 
   useEffect(() => {
     getEvent('InitiateCheckout').track({
@@ -218,9 +208,7 @@ function CheckoutContent() {
         mp_sandbox_init_point: string;
         mp_init_point: string;
       }>('/api/orders/', {
-        ...(urlPreviewId
-          ? { preview_id: urlPreviewId }
-          : { photo_id: photoId }),
+        photo_id: photoId,
         ...(engravingText.trim()
           ? { engraving_text: engravingText.trim() }
           : {}),
@@ -262,7 +250,7 @@ function CheckoutContent() {
   };
 
   const steps: { id: Step; label: string }[] = [
-    ...(!urlPreviewId ? [{ id: 'photo' as Step, label: 'Foto' }] : []),
+    { id: 'photo' as Step, label: 'Foto' },
     { id: 'details', label: 'Datos de envío' },
     { id: 'payment', label: 'Pago' },
   ];
@@ -275,7 +263,7 @@ function CheckoutContent() {
     );
   }
 
-  const photoUrl = previewRenderUrl ?? localPhotoPreview;
+  const photoUrl = localPhotoPreview;
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-14 md:pt-20 pb-16 px-4">
@@ -336,7 +324,6 @@ function CheckoutContent() {
               onShippingChange={setShipping}
               error={error}
               loading={loading}
-              urlPreviewId={urlPreviewId}
               onSubmit={handleDetailsNext}
               onBack={() => setStep('photo')}
             />
@@ -345,7 +332,6 @@ function CheckoutContent() {
           {step === 'payment' && (
             <PaymentStep
               product={product}
-              previewRenderUrl={previewRenderUrl}
               localPhotoPreview={localPhotoPreview}
               shipping={shipping}
               engravingText={engravingText}

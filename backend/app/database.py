@@ -22,10 +22,6 @@ def photos_table():
     return get_table(config.DYNAMO_TABLE_PHOTOS)
 
 
-def previews_table():
-    return get_table(config.DYNAMO_TABLE_PREVIEWS)
-
-
 def orders_table():
     return get_table(config.DYNAMO_TABLE_ORDERS)
 

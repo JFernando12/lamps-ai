@@ -33,20 +33,8 @@ def _scan_all(table) -> list:
 def list_orders() -> list:
     orders = _scan_all(database.orders_table())
 
-    previews_cache: dict = {}
     photos_cache: dict = {}
     for o in orders:
-        pid = o.get("preview_id")
-        if pid:
-            if pid not in previews_cache:
-                previews_cache[pid] = (
-                    database.previews_table().get_item(Key={"preview_id": pid}).get("Item")
-                )
-            if previews_cache.get(pid):
-                key = previews_cache[pid].get("s3_render_key")
-                if key:
-                    o["photo_url"] = s3_helper.get_presigned_url(key)
-
         phid = o.get("photo_id")
         if phid and not o.get("photo_url"):
             if phid not in photos_cache:
@@ -97,7 +85,6 @@ def update_order_status(order_id: str, body: UpdateOrderStatusRequest) -> dict:
 
 def get_stats() -> dict:
     total_photos = database.photos_table().scan(Select="COUNT").get("Count", 0)
-    total_previews = database.previews_table().scan(Select="COUNT").get("Count", 0)
 
     orders = _scan_all(database.orders_table())
     paid_orders = [
@@ -108,16 +95,14 @@ def get_stats() -> dict:
         float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
         for o in paid_orders
     )
-    total_uploads = total_photos + total_previews
 
     return {
-        "total_photos_uploaded": total_uploads,
-        "total_previews_generated": total_previews,
+        "total_photos_uploaded": total_photos,
         "total_orders": len(orders),
         "paid_orders": len(paid_orders),
         "total_revenue_mxn": round(total_revenue, 2),
         "conversion_rate_pct": round(
-            (len(orders) / total_uploads * 100) if total_uploads else 0, 1
+            (len(orders) / total_photos * 100) if total_photos else 0, 1
         ),
     }
 

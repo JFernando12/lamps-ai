@@ -3,7 +3,6 @@ import { ShippingForm, User, ProductConfig } from './types';
 
 interface Props {
   product: ProductConfig;
-  previewRenderUrl: string | null;
   localPhotoPreview: string | null;
   shipping: ShippingForm;
   engravingText: string;
@@ -17,7 +16,6 @@ interface Props {
 
 export function PaymentStep({
   product,
-  previewRenderUrl,
   localPhotoPreview,
   shipping,
   engravingText,
@@ -36,11 +34,11 @@ export function PaymentStep({
       </h2>
 
       <div className="bg-white/3 border border-white/10 rounded-xl p-4 space-y-3">
-        {(previewRenderUrl || localPhotoPreview) && (
+        {localPhotoPreview && (
           <div className="flex gap-3 pb-3 border-b border-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={previewRenderUrl ?? localPhotoPreview!}
+              src={localPhotoPreview}
               alt="Tu foto"
               className="w-14 h-14 object-cover rounded-lg border border-amber-500/20 shrink-0"
             />

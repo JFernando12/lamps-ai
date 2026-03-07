@@ -19,13 +19,11 @@ export interface Order {
   shipping: ShippingInfo;
   tracking_number?: string;
   photo_id?: string;
-  preview_id?: string;
   photo_url?: string;
 }
 
 export interface Stats {
   total_photos_uploaded: number;
-  total_previews_generated: number;
   total_orders: number;
   paid_orders: number;
   total_revenue_mxn: number;

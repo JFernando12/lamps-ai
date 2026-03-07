@@ -1,6 +1,6 @@
 # Lamps AI
 
-Plataforma para generar lámparas personalizadas con IA. El usuario sube una foto, recibe un render fotorrealista de cómo quedaría su lámpara, y puede comprarla pagando con MercadoPago.
+Plataforma de lámparas personalizadas. El usuario sube una foto, llena sus datos de envío y paga con MercadoPago. El pedido queda registrado y puede seguir su estado desde su cuenta.
 
 ---
 
@@ -8,12 +8,13 @@ Plataforma para generar lámparas personalizadas con IA. El usuario sube una fot
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Next.js 16 (App Router), React 19, Tailwind CSS |
-| Backend | FastAPI (Python), uvicorn |
-| Base de datos | DynamoDB (3 tablas) |
+| Frontend | Next.js 14 (App Router), React, Tailwind CSS |
+| Backend | FastAPI (Python 3.12), uvicorn |
+| Base de datos | DynamoDB (4 tablas) |
 | Almacenamiento | AWS S3 |
-| IA | OpenAI (generación de renders) |
 | Pagos | MercadoPago Checkout Pro |
+| Email | Amazon SES (recuperación de carritos abandonados) |
+| Scheduler | APScheduler 3.x (tarea cada 15 min) |
 | Auth | JWT (HS256), 7 días de expiración |
 
 ---
@@ -23,9 +24,8 @@ Plataforma para generar lámparas personalizadas con IA. El usuario sube una fot
 ```
 lamps-ai/
 ├── backend/
-│   ├── main.py                  # Entry point FastAPI
+│   ├── main.py                  # Entry point FastAPI + lifespan (APScheduler)
 │   ├── pyproject.toml
-│   ├── requirements.txt
 │   ├── .env                     # Variables de entorno (no commitear)
 │   ├── app/
 │   │   ├── config.py            # Configuración y variables de entorno
@@ -33,42 +33,45 @@ lamps-ai/
 │   │   ├── s3.py                # Helpers S3 (upload, presigned URLs)
 │   │   ├── auth_utils.py        # Hash de contraseñas, JWT
 │   │   ├── dependencies.py      # Dependencias FastAPI (auth guards)
+│   │   ├── pixel_events.py      # Meta Conversions API (CAPI)
 │   │   ├── routers/
 │   │   │   ├── auth.py          # /api/auth/*
-│   │   │   ├── ai.py            # /api/ai/*
+│   │   │   ├── photos.py        # /api/photos/*
 │   │   │   ├── orders.py        # /api/orders/*
-│   │   │   └── admin.py         # /api/admin/*
+│   │   │   ├── catalog.py       # /api/catalog/*
+│   │   │   ├── admin.py         # /api/admin/*
+│   │   │   └── carts.py         # /api/carts/*
 │   │   ├── services/
 │   │   │   ├── auth_service.py
-│   │   │   ├── ai_service.py
+│   │   │   ├── photos_service.py
 │   │   │   ├── orders_service.py
-│   │   │   └── admin_service.py
-│   │   ├── schemas/
-│   │   │   ├── auth.py
-│   │   │   ├── orders.py
-│   │   │   └── admin.py
-│   │   └── modules/
-│   │       ├── lineart.py       # Generación de líneas vectoriales
-│   │       ├── render.py        # Render fotorrealista con OpenAI
-│   │       └── vectorize.py     # Vectorización de imagen
+│   │   │   ├── admin_service.py
+│   │   │   └── carts_service.py  # Lógica carritos abandonados + SES
+│   │   └── schemas/
+│   │       ├── auth.py
+│   │       ├── orders.py
+│   │       └── admin.py
 │   └── scripts/
-│       ├── create_tables.py     # Crea las tablas DynamoDB
+│       ├── create_tables.py     # Crea las 4 tablas DynamoDB (idempotente)
 │       └── clear_tables.py      # Limpia datos de las tablas
 └── frontend/
     └── src/
         ├── app/
-        │   ├── page.tsx                    # Home — generador de preview
+        │   ├── page.tsx                    # Home
         │   ├── login/page.tsx              # Login / registro
-        │   ├── checkout/page.tsx           # Formulario de compra
+        │   ├── checkout/page.tsx           # Flujo de compra (3 pasos)
         │   ├── pedido/[id]/page.tsx        # Estado del pedido
         │   ├── mi-cuenta/pedidos/page.tsx  # Mis pedidos
         │   └── admin/dashboard/page.tsx    # Panel de administración
         ├── components/
-        │   └── Navbar.tsx
+        │   ├── Navbar.tsx
+        │   └── UtmTracker.tsx
         ├── contexts/
         │   └── AuthContext.tsx             # Estado de sesión global
         └── lib/
-            └── api.ts                      # Cliente HTTP (get, post, patch)
+            ├── api.ts                      # Cliente HTTP (get, post, patch)
+            ├── pixelEvents.ts              # Meta Pixel (browser)
+            └── utm.ts                      # Captura y persistencia de UTMs
 ```
 
 ---
@@ -78,17 +81,23 @@ lamps-ai/
 ### Backend (`backend/.env`)
 
 ```env
-# OpenAI
-OPENAI_API_KEY=sk-...
-
 # AWS
+AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
+S3_BUCKET=lamps-ai
+
+# DynamoDB
+DYNAMO_TABLE_USERS=lamps_users
+DYNAMO_TABLE_PHOTOS=lamps_photos
+DYNAMO_TABLE_ORDERS=lamps_orders
+DYNAMO_TABLE_CARTS=lamps_carts
 
 # Auth
 JWT_SECRET=una-clave-secreta-larga
 
 # Admin
+ADMIN_EMAIL=admin@lamps.ai
 ADMIN_PASSWORD=password-del-admin
 
 # MercadoPago
@@ -97,15 +106,22 @@ MP_PUBLIC_KEY=APP_USR-...
 
 # App
 FRONTEND_URL=http://localhost:3000   # Cambiar a URL de ngrok/producción al pagar
+EXTRA_ORIGINS=                       # Orígenes CORS adicionales (separados por coma)
 
-# Dev
-MOCK_AI=false   # true para omitir OpenAI y devolver imagen placeholder
+# Email — carritos abandonados (vacío = deshabilitado)
+SES_FROM_EMAIL=noreply@tudominio.com
+
+# Meta
+META_PIXEL_ID=
+META_ACCESS_TOKEN=
 ```
 
 ### Frontend (`frontend/.env.local`)
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000   # Cambiar si el backend tiene otra URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-...
+NEXT_PUBLIC_META_PIXEL_ID=
 ```
 
 > Si accedes al frontend por ngrok, el backend también debe exponerse por ngrok y actualizar `NEXT_PUBLIC_API_URL`.
@@ -119,7 +135,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000   # Cambiar si el backend tiene otra U
 ```powershell
 cd backend
 uv venv
-uv pip install -r requirements.txt
+uv sync
 
 # Crear tablas DynamoDB (solo la primera vez)
 uv run python scripts/create_tables.py
@@ -148,11 +164,11 @@ npm run dev
 | POST | `/api/auth/login` | No | Login, devuelve JWT |
 | GET | `/api/auth/me` | Sí | Perfil del usuario autenticado |
 
-### IA — `/api/ai`
+### Fotos — `/api/photos`
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| POST | `/api/ai/preview` | Opcional | Sube foto, devuelve render de lámpara |
+| POST | `/api/photos/upload` | Opcional | Sube foto a S3, devuelve `photo_id` |
 
 ### Pedidos — `/api/orders`
 
@@ -161,8 +177,16 @@ npm run dev
 | POST | `/api/orders/` | Sí | Crea pedido y preferencia en MercadoPago |
 | GET | `/api/orders/mine` | Sí | Lista pedidos del usuario |
 | GET | `/api/orders/{id}` | Sí | Detalle de un pedido |
-| POST | `/api/orders/{id}/sync-payment?payment_id=xxx` | Sí | Sincroniza estado de pago desde MP (llamado al volver del checkout) |
+| POST | `/api/orders/{id}/sync-payment?payment_id=xxx` | Sí | Sincroniza estado de pago desde MP |
 | POST | `/api/orders/webhook/mp` | No | Webhook de MercadoPago |
+
+### Carritos — `/api/carts`
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/api/carts/` | No | Guarda/actualiza un draft de carrito |
+| GET | `/api/carts/{cart_id}` | No | Recupera un draft |
+| POST | `/api/carts/{cart_id}/convert` | No | Marca el carrito como convertido |
 
 ### Admin — `/api/admin`
 
@@ -178,33 +202,40 @@ npm run dev
 
 ## DynamoDB — Tablas
 
-| Tabla | PK | GSI |
-|-------|----|-----|
-| `lamps_users` | `email` | — |
-| `lamps_previews` | `preview_id` | `email-index` (user_email) |
-| `lamps_orders` | `order_id` | `email-index` (user_email) |
+| Tabla | PK | GSI | TTL |
+|-------|----|-----|-----|
+| `lamps_users` | `email` | — | — |
+| `lamps_photos` | `photo_id` | — | — |
+| `lamps_orders` | `order_id` | `email-index` (user_email) | — |
+| `lamps_carts` | `cart_id` | — | `expires_ttl` (30 días) |
 
 ---
 
 ## Flujo de compra
 
 ```
-1. Usuario sube foto en /
-   └─ POST /api/ai/preview → render + preview_id
+1. Usuario sube foto en /checkout (paso 1)
+   └─ POST /api/photos/upload → photo_id
+   └─ (opcional) crea cuenta o inicia sesión en el mismo paso
 
-2. Usuario llena datos de envío en /checkout
+2. Usuario llena datos de envío (paso 2)
+
+3. Usuario confirma el pedido (paso 3)
    └─ POST /api/orders/ → crea orden en DynamoDB + preferencia en MercadoPago
-      └─ frontend redirige a mp_sandbox_init_point (dev) / mp_init_point (prod)
+      └─ frontend redirige a mp_init_point
 
-3. Usuario paga en MercadoPago
+4. Usuario paga en MercadoPago
 
-4. MP redirige a /pedido/{id}?status=success&payment_id=xxx
+5. MP redirige a /pedido/{id}?status=success&payment_id=xxx
    └─ frontend llama POST /api/orders/{id}/sync-payment?payment_id=xxx
       └─ backend consulta el pago en MP y actualiza status en DynamoDB
-         └─ frontend muestra estado actualizado
 
-5. (Opcional) MP llama al webhook /api/orders/webhook/mp como confirmación definitiva
+6. (Opcional) MP llama al webhook /api/orders/webhook/mp como confirmación definitiva
 ```
+
+### Recuperación de carritos abandonados
+
+El backend guarda un draft (`lamps_carts`) cada vez que el usuario avanza en el checkout sin completar el pago. APScheduler ejecuta `process_abandoned_carts` cada 15 minutos: si el carrito tiene más de 1 hora sin actividad y no fue convertido, envía un email de recordatorio vía SES (deshabilitado si `SES_FROM_EMAIL` está vacío).
 
 ---
 

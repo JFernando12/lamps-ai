@@ -8,7 +8,6 @@ from fastapi import HTTPException
 
 from .. import config
 from .. import database
-from .. import s3 as s3_helper
 from ..schemas.orders import CreateOrderRequest
 from ..pixel_events import get_event
 
@@ -67,7 +66,6 @@ def create_order(
         "order_id": order_id,
         "user_email": user_email,
         "photo_id": body.photo_id,
-        "preview_id": body.preview_id,
         "engraving_text": body.engraving_text,
         "spotify_url": body.spotify_url,
         "product_name": body.product_name,
@@ -91,13 +89,7 @@ def create_order(
     })
     database.orders_table().put_item(Item=item)
 
-    # Link source asset → order
-    if body.preview_id:
-        database.previews_table().update_item(
-            Key={"preview_id": body.preview_id},
-            UpdateExpression="SET order_id = :oid",
-            ExpressionAttributeValues={":oid": order_id},
-        )
+    # Link photo → order
     if body.photo_id:
         database.photos_table().update_item(
             Key={"photo_id": body.photo_id},
@@ -123,19 +115,6 @@ def create_order(
     }
 
 
-def _attach_render_url(order: dict) -> None:
-    """Mutates order dict in-place, adding render_url if available."""
-    pid = order.get("preview_id")
-    if not pid:
-        return
-    try:
-        prev = database.previews_table().get_item(Key={"preview_id": pid}).get("Item")
-        if prev and prev.get("s3_render_key"):
-            order["render_url"] = s3_helper.get_presigned_url(prev["s3_render_key"])
-    except Exception:
-        pass
-
-
 def get_my_orders(user_email: str) -> list:
     response = database.orders_table().query(
         IndexName="email-index",
@@ -143,8 +122,6 @@ def get_my_orders(user_email: str) -> list:
         ExpressionAttributeValues={":email": user_email},
     )
     orders = response.get("Items", [])
-    for o in orders:
-        _attach_render_url(o)
     return orders
 
 
@@ -154,7 +131,6 @@ def get_order(order_id: str, user_email: str, is_admin: bool = False) -> dict:
         raise HTTPException(status_code=404, detail="Order not found")
     if item["user_email"] != user_email and not is_admin:
         raise HTTPException(status_code=403, detail="Forbidden")
-    _attach_render_url(item)
     return item
 
 
@@ -189,17 +165,7 @@ def sync_payment(order_id: str, payment_id: str, user_email: str) -> dict:
         },
     )
 
-    if mp_status == "approved":
-        pid = item.get("preview_id")
-        if pid:
-            database.previews_table().update_item(
-                Key={"preview_id": pid},
-                UpdateExpression="SET purchased = :t",
-                ExpressionAttributeValues={":t": True},
-            )
-
     updated = table.get_item(Key={"order_id": order_id}).get("Item", {})
-    _attach_render_url(updated)
 
     if mp_status == "approved":
         get_event("Purchase").send(updated)
@@ -244,13 +210,6 @@ def process_mp_webhook(data: dict) -> dict:
 
     if mp_status == "approved":
         order = table.get_item(Key={"order_id": order_id}).get("Item", {})
-        pid = order.get("preview_id")
-        if pid:
-            database.previews_table().update_item(
-                Key={"preview_id": pid},
-                UpdateExpression="SET purchased = :t",
-                ExpressionAttributeValues={":t": True},
-            )
         get_event("Purchase").send(order)
 
     return {"ok": True}

@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config
-from app.routers.ai import router as ai_router
 from app.routers.auth import router as auth_router
 from app.routers.carts import router as carts_router
 from app.routers.catalog import router as catalog_router
@@ -31,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(ai_router)
 app.include_router(auth_router)
 app.include_router(carts_router)
 app.include_router(photos_router)

@@ -51,29 +51,6 @@ TABLES = [
         "BillingMode": "PAY_PER_REQUEST",
     },
 
-    # ── Previews ─────────────────────────────────────────────────────────────
-    # GSI         : user_email → list all previews by user
-    {
-        "TableName": config.DYNAMO_TABLE_PREVIEWS,
-        "KeySchema": [
-            {"AttributeName": "preview_id", "KeyType": "HASH"},
-        ],
-        "AttributeDefinitions": [
-            {"AttributeName": "preview_id", "AttributeType": "S"},
-            {"AttributeName": "user_email",  "AttributeType": "S"},
-        ],
-        "BillingMode": "PAY_PER_REQUEST",
-        "GlobalSecondaryIndexes": [
-            {
-                "IndexName": "email-index",
-                "KeySchema": [
-                    {"AttributeName": "user_email", "KeyType": "HASH"},
-                ],
-                "Projection": {"ProjectionType": "ALL"},
-            },
-        ],
-    },
-
     # ── Orders ───────────────────────────────────────────────────────────────
     # Primary key : order_id (uuid)
     # GSI         : user_email → list all orders by user
@@ -146,7 +123,7 @@ def enable_ttl(name: str, attr: str) -> None:
 def create_tables() -> None:
     print(f"Region  : {config.AWS_REGION}")
     print(f"Tables  : {config.DYNAMO_TABLE_USERS}, {config.DYNAMO_TABLE_PHOTOS}, "
-          f"{config.DYNAMO_TABLE_PREVIEWS}, {config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}")
+          f"{config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}")
     print()
 
     for schema in TABLES:

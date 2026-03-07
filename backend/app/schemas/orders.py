@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 
 class ShippingInfo(BaseModel):
@@ -12,8 +12,7 @@ class ShippingInfo(BaseModel):
 
 
 class CreateOrderRequest(BaseModel):
-    photo_id: str | None = None
-    preview_id: str | None = None
+    photo_id: str
     engraving_text: str | None = None   # optional text engraved below the design
     spotify_url: str | None = None      # Spotify track name or URL for code engraving
     shipping: ShippingInfo
@@ -32,9 +31,3 @@ class CreateOrderRequest(BaseModel):
     utm_term: str | None = None
     fbclid: str | None = None   # Facebook click ID (from ?fbclid= URL param)
     fbp: str | None = None      # _fbp cookie value
-
-    @model_validator(mode='after')
-    def check_source(self):
-        if not self.photo_id and not self.preview_id:
-            raise ValueError('Either photo_id or preview_id is required')
-        return self

@@ -7,7 +7,6 @@ interface Props {
   onShippingChange: (s: ShippingForm) => void;
   error: string | null;
   loading: boolean;
-  urlPreviewId: string;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
 }
@@ -17,7 +16,6 @@ export function DetailsStep({
   onShippingChange,
   error,
   loading,
-  urlPreviewId,
   onSubmit,
   onBack,
 }: Props) {
@@ -79,15 +77,13 @@ export function DetailsStep({
         {loading ? 'Cargando…' : 'Continuar'}
       </button>
 
-      {!urlPreviewId && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="w-full text-white/40 hover:text-white text-sm py-2 transition-colors"
-        >
-          ← Cambiar foto
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full text-white/40 hover:text-white text-sm py-2 transition-colors"
+      >
+        ← Cambiar foto
+      </button>
     </form>
   );
 }

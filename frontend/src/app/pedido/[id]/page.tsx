@@ -31,7 +31,6 @@ interface Order {
     phone: string;
   };
   created_at: string;
-  render_url?: string;
   tracking_number?: string;
   mp_payment_id?: string;
 }
@@ -262,22 +261,6 @@ function OrderStatusContent() {
                   }}
                 />
               </div>
-            </div>
-          )}
-
-          {/* Render preview */}
-          {order.render_url && (
-            <div className="mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={order.render_url}
-                alt="Tu lámpara"
-                className="w-full max-h-64 object-contain rounded-xl border border-white/10"
-              />
-              <p className="text-xs text-white/40 text-center mt-2 px-2">
-                ✦ Imagen de referencia — los trazos finales son realizados a
-                mano, siendo fieles a tu foto.
-              </p>
             </div>
           )}
 

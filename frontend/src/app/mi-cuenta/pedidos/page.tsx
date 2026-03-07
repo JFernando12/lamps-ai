@@ -22,17 +22,47 @@ interface Order {
   unit_price: string;
   quantity: number;
   created_at: string;
-  render_url?: string;
 }
 
-const STATUS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  pending_payment: { label: "Pendiente de pago", icon: <Clock size={14} />, color: "text-yellow-400 bg-yellow-400/10" },
-  paid: { label: "Pago confirmado", icon: <CheckCircle2 size={14} />, color: "text-green-400 bg-green-400/10" },
-  in_process: { label: "En producción", icon: <Sparkles size={14} />, color: "text-amber-400 bg-amber-400/10" },
-  shipped: { label: "Enviado", icon: <Truck size={14} />, color: "text-blue-400 bg-blue-400/10" },
-  delivered: { label: "Entregado", icon: <CheckCircle2 size={14} />, color: "text-green-400 bg-green-400/10" },
-  payment_failed: { label: "Pago fallido", icon: <AlertCircle size={14} />, color: "text-red-400 bg-red-400/10" },
-  cancelled: { label: "Cancelado", icon: <AlertCircle size={14} />, color: "text-red-400 bg-red-400/10" },
+const STATUS: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  pending_payment: {
+    label: 'Pendiente de pago',
+    icon: <Clock size={14} />,
+    color: 'text-yellow-400 bg-yellow-400/10',
+  },
+  paid: {
+    label: 'Pago confirmado',
+    icon: <CheckCircle2 size={14} />,
+    color: 'text-green-400 bg-green-400/10',
+  },
+  in_process: {
+    label: 'En producción',
+    icon: <Sparkles size={14} />,
+    color: 'text-amber-400 bg-amber-400/10',
+  },
+  shipped: {
+    label: 'Enviado',
+    icon: <Truck size={14} />,
+    color: 'text-blue-400 bg-blue-400/10',
+  },
+  delivered: {
+    label: 'Entregado',
+    icon: <CheckCircle2 size={14} />,
+    color: 'text-green-400 bg-green-400/10',
+  },
+  payment_failed: {
+    label: 'Pago fallido',
+    icon: <AlertCircle size={14} />,
+    color: 'text-red-400 bg-red-400/10',
+  },
+  cancelled: {
+    label: 'Cancelado',
+    icon: <AlertCircle size={14} />,
+    color: 'text-red-400 bg-red-400/10',
+  },
 };
 
 export default function MyOrdersPage() {
@@ -44,11 +74,11 @@ export default function MyOrdersPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      router.push("/login");
+      router.push('/login');
       return;
     }
     api
-      .get<Order[]>("/api/orders/mine")
+      .get<Order[]>('/api/orders/mine')
       .then(setOrders)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -81,13 +111,13 @@ export default function MyOrdersPage() {
           <div className="text-center py-20 text-white/30">
             <Package size={48} className="mx-auto mb-4 opacity-30" />
             <p className="font-medium text-lg">Aún no tienes pedidos</p>
-            <p className="text-sm mb-6">¡Genera tu preview y pide tu lámpara!</p>
+            <p className="text-sm mb-6">¡Pide tu lámpara personalizada!</p>
             <Link
-              href="/#preview"
+              href="/checkout?product=rgb"
               className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl transition-colors"
             >
               <Sparkles size={16} />
-              Ir al generador
+              Hacer un pedido
             </Link>
           </div>
         ) : (
@@ -100,18 +130,9 @@ export default function MyOrdersPage() {
                   href={`/pedido/${order.order_id}`}
                   className="flex items-center gap-4 bg-white/3 hover:bg-white/6 border border-white/10 hover:border-amber-400/20 rounded-2xl p-4 transition-all group"
                 >
-                  {/* Render thumbnail */}
+                  {/* Order thumbnail */}
                   <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                    {order.render_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={order.render_url}
-                        alt="Lámpara"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Package size={20} className="text-white/20" />
-                    )}
+                    <Package size={20} className="text-white/20" />
                   </div>
 
                   <div className="flex-1 min-w-0">

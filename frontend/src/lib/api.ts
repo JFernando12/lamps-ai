@@ -32,13 +32,7 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  /** Fetch preview metadata (render_url) by id — no auth required */
-  getPreview: (
-    previewId: string,
-  ): Promise<{ preview_id: string; render_url?: string }> =>
-    request(`/api/ai/preview/${previewId}`),
-
-  /** Upload photo only — no AI, returns preview_id for use in checkout */
+  /** Upload photo only — no AI, returns photo_id for use in checkout */
   uploadPhoto: async (file: File): Promise<{ photo_id: string }> => {
     const token = getToken();
     const fd = new FormData();
@@ -51,29 +45,6 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
       throw new Error(err.detail ?? 'Error subiendo la foto');
-    }
-    return res.json();
-  },
-
-  /** Multipart upload */
-  uploadPreview: async (
-    file: File,
-  ): Promise<{
-    preview_id: string;
-    render_url: string;
-    lineart_url: string;
-  }> => {
-    const token = getToken();
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(`${BASE}/api/ai/preview`, {
-      method: 'POST',
-      body: fd,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(err.detail ?? 'Error generando preview');
     }
     return res.json();
   },
