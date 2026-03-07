@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { RefreshCw, TrendingUp, Settings } from 'lucide-react';
+import { RefreshCw, TrendingUp, Settings, Radio } from 'lucide-react';
 import { AttributionPanel } from './components/AttributionPanel';
 import { ConfigPanel } from './components/ConfigPanel';
-import type { AdsAttribution, AdsConfig } from './components/types';
+import { EventsPanel } from './components/EventsPanel';
+import type { AdsAttribution, AdsConfig, PixelEvent } from './components/types';
+import { PIXEL_EVENTS } from '@/lib/pixelEvents';
 
-type Tab = 'attribution' | 'config';
+type Tab = 'attribution' | 'config' | 'events';
 
 export default function AdsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -18,19 +20,23 @@ export default function AdsPage() {
   const [tab, setTab] = useState<Tab>('attribution');
   const [attribution, setAttribution] = useState<AdsAttribution | null>(null);
   const [config, setConfig] = useState<AdsConfig | null>(null);
+  const [events, setEvents] = useState<PixelEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [attr, cfg] = await Promise.allSettled([
+      const [attr, cfg, evts] = await Promise.allSettled([
         api.get<AdsAttribution>('/api/admin/ads/attribution'),
         api.get<AdsConfig>('/api/admin/ads/config'),
+        api.get<PixelEvent[]>('/api/admin/ads/events'),
       ]);
       if (attr.status === 'fulfilled') setAttribution(attr.value);
       else console.error('Error loading attribution:', attr.reason);
       if (cfg.status === 'fulfilled') setConfig(cfg.value);
       else console.error('Error loading ads config:', cfg.reason);
+      if (evts.status === 'fulfilled') setEvents(evts.value);
+      else console.error('Error loading pixel events:', evts.reason);
     } finally {
       setLoading(false);
     }
@@ -97,6 +103,17 @@ export default function AdsPage() {
             <Settings size={14} />
             Configuración
           </button>
+          <button
+            onClick={() => setTab('events')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              tab === 'events'
+                ? 'bg-amber-500 text-black'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            <Radio size={14} />
+            Eventos
+          </button>
         </div>
 
         {/* Tab content */}
@@ -104,6 +121,9 @@ export default function AdsPage() {
           <AttributionPanel data={attribution} />
         )}
         {tab === 'config' && config && <ConfigPanel config={config} />}
+        {tab === 'events' && (
+          <EventsPanel backendEvents={events} frontendEvents={PIXEL_EVENTS} />
+        )}
       </div>
     </main>
   );

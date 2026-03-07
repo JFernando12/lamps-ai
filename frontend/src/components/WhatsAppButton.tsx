@@ -1,16 +1,11 @@
 'use client';
 
 import { MessageCircle } from 'lucide-react';
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+import { getEvent } from '@/lib/pixelEvents';
 
 export function WhatsAppButton() {
   const handleClick = () => {
-    window.fbq?.('track', 'Contact');
+    getEvent('Contact').track();
   };
 
   return (

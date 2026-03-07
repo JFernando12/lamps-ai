@@ -2,6 +2,7 @@ import { useRef, useCallback, useState } from 'react';
 import { Upload, Type, Music } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '@/lib/api';
+import { getEvent } from '@/lib/pixelEvents';
 
 interface Props {
   localPhotoPreview: string | null;
@@ -45,16 +46,7 @@ export function PhotoStep({
       try {
         const result = await api.uploadPhoto(file);
         onPhotoUploaded(result.photo_id);
-        const eventId =
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? `photo_${crypto.randomUUID().replace(/-/g, '')}`
-            : `photo_${Date.now()}`;
-        (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
-          'trackCustom',
-          'PhotoUploaded',
-          {},
-          { eventID: eventId },
-        );
+        getEvent('PhotoUploaded').track();
       } catch (e: unknown) {
         setUploadError(
           e instanceof Error ? e.message : 'Error subiendo la foto',
@@ -218,8 +210,8 @@ export function PhotoStep({
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 transition-colors text-sm"
           />
           <p className="text-white/25 text-xs mt-1.5">
-            Pon el nombre de la canción o pega el link de Spotify. Grabaremos
-            el código en el acrílico para que cualquiera lo escanee. Opcional.
+            Pon el nombre de la canción o pega el link de Spotify. Grabaremos el
+            código en el acrílico para que cualquiera lo escanee. Opcional.
           </p>
         </div>
       </div>

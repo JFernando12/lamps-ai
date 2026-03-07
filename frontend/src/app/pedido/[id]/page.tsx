@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { getEvent } from '@/lib/pixelEvents';
 import {
   CheckCircle2,
   Clock,
@@ -124,27 +125,16 @@ function OrderStatusContent() {
           hasFiredPurchase.current = true;
           // Use order_id as eventID so Meta deduplicates with the CAPI Purchase
           // event sent from the backend when the payment was confirmed.
-          (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
-            'track',
-            'Purchase',
-            {
-              value: parseFloat(order.unit_price) * order.quantity,
-              currency: 'MXN',
-              content_name: order.product_name,
-              content_ids: [order.order_id],
-            },
-            { eventID: order.order_id },
-          );
+          getEvent('Purchase').track({
+            value: parseFloat(order.unit_price) * order.quantity,
+            orderId: order.order_id,
+            contentName: order.product_name,
+          });
         }
         if (paymentStatus === 'failure') {
-          (window as { fbq?: (...args: unknown[]) => void }).fbq?.(
-            'trackCustom',
-            'PaymentFailed',
-            {
-              value: parseFloat(order.unit_price) * order.quantity,
-              currency: 'MXN',
-            },
-          );
+          getEvent('PaymentFailed').track({
+            value: parseFloat(order.unit_price) * order.quantity,
+          });
         }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error desconocido');

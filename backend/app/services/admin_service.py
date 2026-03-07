@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
+from .. import config
 from .. import database
 from .. import s3 as s3_helper
+from ..pixel_events import pixel_events_list
 from ..schemas.admin import UpdateOrderStatusRequest
 
 ORDER_STATUSES = [
@@ -187,9 +189,13 @@ def get_ads_attribution() -> dict:
 
 def get_ads_config() -> dict:
     """Returns current Ads / CAPI configuration status (no secrets exposed)."""
-    from .. import config as cfg
     return {
-        "pixel_id": cfg.META_PIXEL_ID or None,
-        "capi_configured": bool(cfg.META_PIXEL_ID and cfg.META_ACCESS_TOKEN),
+        "pixel_id": config.META_PIXEL_ID or None,
+        "capi_configured": bool(config.META_PIXEL_ID and config.META_ACCESS_TOKEN),
         "api_version": "v21.0",
     }
+
+
+def get_pixel_events() -> list:
+    return pixel_events_list()
+

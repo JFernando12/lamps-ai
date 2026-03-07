@@ -34,3 +34,8 @@ def ads_attribution(_admin=Depends(get_current_admin)):
 @router.get("/ads/config")
 def ads_config(_admin=Depends(get_current_admin)):
     return admin_service.get_ads_config()
+
+
+@router.get("/ads/events")
+def ads_events(_admin=Depends(get_current_admin)):
+    return admin_service.get_pixel_events()

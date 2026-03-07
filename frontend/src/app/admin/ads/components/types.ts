@@ -33,3 +33,13 @@ export interface AdsConfig {
   capi_configured: boolean;
   api_version: string;
 }
+
+/** Evento CAPI enviado desde el backend (perspectiva del servidor). */
+export interface PixelEvent {
+  event_name: string;
+  type: 'standard' | 'custom';
+  route: string;
+  has_event_id: boolean;
+  notes: string;
+  enabled: boolean;
+}

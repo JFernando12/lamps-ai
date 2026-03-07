@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Shield, Sparkles, Zap, Flame } from 'lucide-react';
+import { getEvent } from '@/lib/pixelEvents';
 
 declare global {
   interface Window {
@@ -74,12 +75,7 @@ export function ProductSection() {
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.disconnect();
-          window.fbq?.('track', 'ViewContent', {
-            content_ids: ['rgb', 'madera'],
-            content_type: 'product',
-            value: 598,
-            currency: 'MXN',
-          });
+          getEvent('ViewContent').track();
         }
       },
       { threshold: 0.2 },
@@ -185,11 +181,9 @@ export function ProductSection() {
               <a
                 href={p.href}
                 onClick={() =>
-                  window.fbq?.('track', 'AddToCart', {
-                    content_ids: [p.id],
-                    content_type: 'product',
+                  getEvent('AddToCart').track({
+                    contentId: p.id,
                     value: p.price,
-                    currency: 'MXN',
                   })
                 }
                 className={`w-full flex items-center justify-center gap-2 font-bold px-6 py-4 rounded-2xl text-base transition-all hover:scale-[1.03] active:scale-100 ${p.btnClass}`}

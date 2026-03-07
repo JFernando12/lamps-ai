@@ -10,7 +10,7 @@ from .. import config
 from .. import database
 from .. import s3 as s3_helper
 from ..schemas.orders import CreateOrderRequest
-from . import meta_service
+from ..pixel_events import get_event
 
 logger = logging.getLogger(__name__)
 
@@ -104,16 +104,17 @@ def create_order(
             UpdateExpression="SET order_id = :oid",
             ExpressionAttributeValues={":oid": order_id},
         )
-    meta_service.track_initiate_checkout(
-        order_id,
-        user_email,
-        float(body.unit_price) * body.quantity,
-        checkout_event_id=body.checkout_event_id,
-        client_ip=client_ip,
-        user_agent=user_agent,
-        fbclid=body.fbclid,
-        fbp=body.fbp,
-    )
+    get_event("InitiateCheckout").send({
+        "order_id": order_id,
+        "user_email": user_email,
+        "unit_price": body.unit_price,
+        "quantity": body.quantity,
+        "checkout_event_id": body.checkout_event_id,
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "fbclid": body.fbclid,
+        "fbp": body.fbp,
+    })
     return {
         "order_id": order_id,
         "mp_init_point": preference["init_point"],
@@ -201,7 +202,7 @@ def sync_payment(order_id: str, payment_id: str, user_email: str) -> dict:
     _attach_render_url(updated)
 
     if mp_status == "approved":
-        meta_service.track_purchase(updated)
+        get_event("Purchase").send(updated)
 
     return updated
 
@@ -250,6 +251,6 @@ def process_mp_webhook(data: dict) -> dict:
                 UpdateExpression="SET purchased = :t",
                 ExpressionAttributeValues={":t": True},
             )
-        meta_service.track_purchase(order)
+        get_event("Purchase").send(order)
 
     return {"ok": True}

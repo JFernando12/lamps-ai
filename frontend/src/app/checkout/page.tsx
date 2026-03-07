@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { getStoredAttribution, getFbpCookie } from '@/lib/utm';
+import { getEvent, genEventId } from '@/lib/pixelEvents';
 import {
   Step,
   ShippingForm,
@@ -16,20 +17,6 @@ import { StepIndicator } from './components/StepIndicator';
 import { PhotoStep } from './components/PhotoStep';
 import { DetailsStep } from './components/DetailsStep';
 import { PaymentStep } from './components/PaymentStep';
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
-
-function genEventId(prefix: string): string {
-  const rand =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID().replace(/-/g, '')
-      : Math.random().toString(36).slice(2);
-  return `${prefix}_${rand}`;
-}
 
 function CheckoutContent() {
   const params = useSearchParams();
@@ -68,12 +55,10 @@ function CheckoutContent() {
   }, [urlPreviewId]);
 
   useEffect(() => {
-    window.fbq?.(
-      'track',
-      'InitiateCheckout',
-      { value: product.price, currency: 'MXN', num_items: 1 },
-      { eventID: checkoutEventId },
-    );
+    getEvent('InitiateCheckout').track({
+      value: product.price,
+      eventId: checkoutEventId,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,12 +84,7 @@ function CheckoutContent() {
       try {
         if (accountMode === 'register') {
           await register(email, password, name);
-          window.fbq?.(
-            'track',
-            'CompleteRegistration',
-            {},
-            { eventID: genEventId('reg') },
-          );
+          getEvent('CompleteRegistration').track();
         } else {
           await login(email, password);
         }
@@ -115,12 +95,7 @@ function CheckoutContent() {
       }
       setLoading(false);
     }
-    window.fbq?.(
-      'track',
-      'AddShippingInfo',
-      { value: product.price, currency: 'MXN' },
-      { eventID: genEventId('si') },
-    );
+    getEvent('AddShippingInfo').track({ value: product.price });
     setStep('payment');
   };
 
@@ -165,12 +140,10 @@ function CheckoutContent() {
         ...(fbp ? { fbp } : {}),
       });
       const isDev = process.env.NODE_ENV === 'development';
-      window.fbq?.(
-        'track',
-        'AddPaymentInfo',
-        { value: product.price, currency: 'MXN' },
-        { eventID: `api_${result.order_id}` },
-      );
+      getEvent('AddPaymentInfo').track({
+        value: product.price,
+        eventId: `api_${result.order_id}`,
+      });
       window.location.href = isDev
         ? result.mp_sandbox_init_point
         : result.mp_init_point;
