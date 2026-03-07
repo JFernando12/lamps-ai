@@ -4,12 +4,14 @@ export function Field({
   onChange,
   onBlur,
   type = 'text',
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   onBlur?: () => void;
   type?: string;
+  autoComplete?: string;
 }) {
   return (
     <div>
@@ -19,6 +21,7 @@ export function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        autoComplete={autoComplete}
         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 transition-colors"
       />
     </div>

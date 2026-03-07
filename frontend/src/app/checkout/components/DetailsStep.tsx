@@ -20,7 +20,7 @@ export function DetailsStep({
   onBack,
 }: Props) {
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} autoComplete="on" className="space-y-4">
       <h2 className="font-semibold text-lg mb-1 flex items-center gap-2">
         <MapPin size={18} className="text-amber-400" />
         Datos de envío
@@ -29,40 +29,47 @@ export function DetailsStep({
       <div className="grid md:grid-cols-2 gap-4">
         <Field
           label="Nombre completo"
+          autoComplete="name"
           value={shipping.full_name}
           onChange={(v) => onShippingChange({ ...shipping, full_name: v })}
         />
         <Field
           label="Teléfono"
           type="tel"
+          autoComplete="tel"
           value={shipping.phone}
           onChange={(v) => onShippingChange({ ...shipping, phone: v })}
         />
       </div>
       <Field
         label="Dirección / calle y número"
+        autoComplete="street-address"
         value={shipping.address}
         onChange={(v) => onShippingChange({ ...shipping, address: v })}
       />
       <div className="grid md:grid-cols-3 gap-4">
         <Field
           label="Ciudad"
+          autoComplete="address-level2"
           value={shipping.city}
           onChange={(v) => onShippingChange({ ...shipping, city: v })}
         />
         <Field
           label="Estado"
+          autoComplete="address-level1"
           value={shipping.state}
           onChange={(v) => onShippingChange({ ...shipping, state: v })}
         />
         <Field
           label="Código postal"
+          autoComplete="postal-code"
           value={shipping.zip_code}
           onChange={(v) => onShippingChange({ ...shipping, zip_code: v })}
         />
       </div>
       <Field
         label="País"
+        autoComplete="country-name"
         value={shipping.country}
         onChange={(v) => onShippingChange({ ...shipping, country: v })}
       />

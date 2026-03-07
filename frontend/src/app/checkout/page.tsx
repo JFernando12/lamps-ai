@@ -11,7 +11,7 @@ import {
   ShippingForm,
   EMPTY_SHIPPING,
   ProductId,
-  getProduct,
+  PRODUCTS,
   CartItemState,
 } from './components/types';
 
@@ -183,7 +183,7 @@ function CheckoutContent() {
   useEffect(() => {
     getEvent('InitiateCheckout').track({
       value: items.reduce(
-        (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+        (s, it) => s + it.quantity * PRODUCTS[it.productId].price,
         0,
       ),
       eventId: checkoutEventId,
@@ -234,7 +234,7 @@ function CheckoutContent() {
     setError(null);
     getEvent('AddShippingInfo').track({
       value: items.reduce(
-        (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+        (s, it) => s + it.quantity * PRODUCTS[it.productId].price,
         0,
       ),
     });
@@ -324,7 +324,7 @@ function CheckoutContent() {
       const isDev = process.env.NODE_ENV === 'development';
       getEvent('AddPaymentInfo').track({
         value: items.reduce(
-          (s, it) => s + it.quantity * (it.productId === 'madera' ? 719 : 598),
+          (s, it) => s + it.quantity * PRODUCTS[it.productId].price,
           0,
         ),
         eventId: `api_${result.order_id}`,
