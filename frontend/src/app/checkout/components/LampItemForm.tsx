@@ -83,62 +83,72 @@ export function LampItemForm({
   const subtotal = product.price * item.quantity;
 
   return (
-    <div className="border border-white/10 rounded-2xl p-4 space-y-4">
+    <div className="relative border border-white/10 rounded-2xl p-4 space-y-4">
+      {/* ── Delete button — badge on card corner ─────────────────── */}
+      {canRemove && (
+        <button
+          type="button"
+          onClick={() => onRemove(item.localId)}
+          className="absolute top-0 right-0 z-10 w-6 h-6 rounded-full  border-white/15 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-400/40 transition-colors"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
+
       {/* ── Product selector ────────────────────────────────────── */}
-      <div className="flex items-center gap-2">
-        <div className="flex flex-1 gap-2">
-          {([
-            { id: 'rgb',    label: 'RGB',    src: '/gallery/lampara-1-v2.jpg' },
-            { id: 'madera', label: 'Madera', src: '/gallery/lampara-madera-1.jpg' },
-          ] as { id: ProductId; label: string; src: string }[]).map(({ id, label, src }) => {
-            const selected = item.productId === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onProductChange(item.localId, id)}
+      <div className="flex gap-2">
+        {(
+          [
+            { id: 'rgb', label: 'RGB', src: '/gallery/lampara-1-v2.jpg' },
+            {
+              id: 'madera',
+              label: 'Madera',
+              src: '/gallery/lampara-madera-1.jpg',
+            },
+          ] as { id: ProductId; label: string; src: string }[]
+        ).map(({ id, label, src }) => {
+          const selected = item.productId === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onProductChange(item.localId, id)}
+              className={clsx(
+                'flex-1 flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 transition-all active:scale-[0.97]',
+                selected
+                  ? 'border-amber-500 bg-amber-500/8'
+                  : 'border-white/8 bg-white/3 hover:border-white/20',
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={label}
                 className={clsx(
-                  'flex-1 flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 transition-all active:scale-[0.97]',
-                  selected
-                    ? 'border-amber-500 bg-amber-500/8'
-                    : 'border-white/8 bg-white/3 hover:border-white/20',
+                  'w-full aspect-square object-cover rounded-xl transition-all',
+                  selected ? 'opacity-100' : 'opacity-40',
                 )}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={label}
-                  className={clsx(
-                    'w-full aspect-square object-cover rounded-xl transition-all',
-                    selected ? 'opacity-100' : 'opacity-40',
-                  )}
-                />
-                <span className={clsx(
+              />
+              <span
+                className={clsx(
                   'text-xs font-semibold',
                   selected ? 'text-amber-400' : 'text-white/35',
-                )}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {canRemove && (
-          <button
-            type="button"
-            onClick={() => onRemove(item.localId)}
-            className="self-start text-white/25 hover:text-red-400 transition-colors p-2 rounded-xl hover:bg-red-400/8"
-          >
-            <Trash2 size={15} />
-          </button>
-        )}
+                )}
+              >
+                {label}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Photo upload ─────────────────────────────────────────── */}
       <div>
         <p className="text-white/40 text-xs mb-2">
           Tu foto
-          <span className="text-white/20 ml-2 font-normal">— cuanto más nítida, mejor el grabado</span>
+          <span className="text-white/20 ml-2 font-normal">
+            — cuanto más nítida, mejor el grabado
+          </span>
         </p>
         <input
           ref={fileRef}
@@ -148,7 +158,10 @@ export function LampItemForm({
           onChange={onFileChange}
         />
         <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           onClick={() => fileRef.current?.click()}
@@ -158,8 +171,8 @@ export function LampItemForm({
             dragging
               ? 'border-amber-400 bg-amber-400/5'
               : item.localPhotoPreview || item.photoId
-              ? 'border-amber-500/40 bg-amber-500/5 hover:border-amber-400/70'
-              : 'border-white/15 hover:border-amber-400/50 active:border-amber-400/50',
+                ? 'border-amber-500/40 bg-amber-500/5 hover:border-amber-400/70'
+                : 'border-white/15 hover:border-amber-400/50 active:border-amber-400/50',
           )}
         >
           {item.localPhotoPreview ? (
@@ -171,7 +184,9 @@ export function LampItemForm({
                 className="max-h-40 max-w-full object-contain rounded-xl"
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 rounded-xl transition-opacity">
-                <span className="text-white text-xs font-semibold">Cambiar foto</span>
+                <span className="text-white text-xs font-semibold">
+                  Cambiar foto
+                </span>
               </div>
             </div>
           ) : item.photoId ? (
@@ -187,10 +202,14 @@ export function LampItemForm({
               </div>
               <div>
                 <p className="font-semibold text-sm">
-                  <span className="hidden md:inline">Arrastra tu foto aquí</span>
+                  <span className="hidden md:inline">
+                    Arrastra tu foto aquí
+                  </span>
                   <span className="md:hidden">Toca para elegir tu foto</span>
                 </p>
-                <p className="text-white/30 text-xs mt-0.5">JPG, PNG, WEBP · Máx 10 MB</p>
+                <p className="text-white/30 text-xs mt-0.5">
+                  JPG, PNG, WEBP · Máx 10 MB
+                </p>
               </div>
             </div>
           )}
@@ -202,7 +221,9 @@ export function LampItemForm({
           )}
         </div>
         {uploadError && (
-          <p className="text-red-400 text-xs mt-1.5 text-center">{uploadError}</p>
+          <p className="text-red-400 text-xs mt-1.5 text-center">
+            {uploadError}
+          </p>
         )}
       </div>
 
@@ -216,7 +237,9 @@ export function LampItemForm({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => onQuantityChange(item.localId, Math.max(1, item.quantity - 1))}
+              onClick={() =>
+                onQuantityChange(item.localId, Math.max(1, item.quantity - 1))
+              }
               disabled={item.quantity <= 1}
               className="w-7 h-7 flex items-center justify-center text-white/50 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-colors active:scale-90"
             >
@@ -227,7 +250,9 @@ export function LampItemForm({
             </span>
             <button
               type="button"
-              onClick={() => onQuantityChange(item.localId, Math.min(10, item.quantity + 1))}
+              onClick={() =>
+                onQuantityChange(item.localId, Math.min(10, item.quantity + 1))
+              }
               disabled={item.quantity >= 10}
               className="w-7 h-7 flex items-center justify-center text-white/50 hover:text-amber-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors active:scale-90"
             >

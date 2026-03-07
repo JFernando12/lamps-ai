@@ -71,10 +71,11 @@ export function PhotoStep({
       </h2>
 
       {/* Item forms */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {items.map((item, idx) => (
           <div
             key={item.localId}
+            className={idx > 0 ? 'mt-2' : undefined}
             ref={
               idx === items.length - 1 && items.length > 1
                 ? newItemRef
