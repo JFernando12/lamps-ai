@@ -38,7 +38,8 @@ export function PaymentStep({
       <div className="space-y-2">
         {items.map((item, idx) => {
           const product = PRODUCTS[item.productId];
-          const thumb = item.localPhotoPreview ?? PRODUCT_IMAGES[item.productId];
+          const thumb =
+            item.localPhotoPreview ?? PRODUCT_IMAGES[item.productId];
           return (
             <div
               key={item.localId}
@@ -52,12 +53,16 @@ export function PaymentStep({
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold text-sm leading-tight">{product.name}</p>
+                  <p className="font-semibold text-sm leading-tight">
+                    {product.name}
+                  </p>
                   <span className="text-amber-400 font-bold text-sm shrink-0">
                     ${(product.price * item.quantity).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-white/35 text-xs mt-0.5">{product.tagline}</p>
+                <p className="text-white/35 text-xs mt-0.5">
+                  {product.tagline}
+                </p>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   {item.quantity > 1 && (
                     <span className="text-[11px] bg-white/8 text-white/60 px-2 py-0.5 rounded-full">
@@ -90,7 +95,9 @@ export function PaymentStep({
           <p className="text-white/40 text-xs mb-0.5">Envío a</p>
           <p className="text-sm font-medium truncate">{shipping.full_name}</p>
           <p className="text-white/50 text-xs truncate">{shipping.address}</p>
-          <p className="text-white/50 text-xs">{shipping.city}, {shipping.state} {shipping.zip_code}</p>
+          <p className="text-white/50 text-xs">
+            {shipping.city}, {shipping.state} {shipping.zip_code}
+          </p>
         </div>
       </div>
 
@@ -101,7 +108,8 @@ export function PaymentStep({
           <p className="text-green-400/70 text-xs mt-0.5">Envío gratis</p>
         </div>
         <span className="text-2xl font-extrabold text-amber-400">
-          ${total.toLocaleString()} <span className="text-sm font-normal text-amber-400/60">MXN</span>
+          ${total.toLocaleString()}{' '}
+          <span className="text-sm font-normal text-amber-400/60">MXN</span>
         </span>
       </div>
 
