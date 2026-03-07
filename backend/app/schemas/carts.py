@@ -12,7 +12,7 @@ class CartItem(BaseModel):
 
 
 class UpsertCartRequest(BaseModel):
-    email: EmailStr
+    email: EmailStr | None = None
     cart_id: str | None = None
     items: List[CartItem] = []
     utm_source: str | None = None

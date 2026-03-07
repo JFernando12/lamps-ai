@@ -245,17 +245,14 @@ function CheckoutContent() {
     setLoading(true);
     setError(null);
 
-    // Auto-register before placing order: use provided email or a random guest identity.
-    if (!user) {
-      const guestEmail =
-        email.trim() ||
-        `guest_${Math.random().toString(36).slice(2)}@lamps-ai.mx`;
+    // Register only if user provided a real email and isn't logged in yet
+    if (!user && email.trim()) {
       const guestPwd =
         Math.random().toString(36).slice(2, 10) +
         Math.random().toString(36).slice(2, 10);
-      const guestName = email.trim() ? email.split('@')[0] : 'Invitado';
+      const guestName = email.split('@')[0];
       try {
-        await register(guestEmail, guestPwd, guestName);
+        await register(email.trim(), guestPwd, guestName);
       } catch (e: unknown) {
         const msg = (e instanceof Error ? e.message : '').toLowerCase();
         if (msg.includes('already') || msg.includes('409')) {
@@ -286,7 +283,7 @@ function CheckoutContent() {
         } = getStoredAttribution() ?? {};
         const fbp = getFbpCookie();
         const r = await api.saveCart({
-          email: email.trim() || user?.email || '',
+          email: email.trim() || user?.email || undefined,
           items: items.map((it) => ({
             photo_id: it.photoId ?? undefined,
             engraving_text: it.engravingText || undefined,
@@ -337,7 +334,7 @@ function CheckoutContent() {
       setError(e instanceof Error ? e.message : 'Error al crear el pedido');
       setLoading(false);
     }
-  };
+  };;
 
   const steps: { id: Step; label: string }[] = [
     { id: 'photo' as Step, label: 'Foto' },

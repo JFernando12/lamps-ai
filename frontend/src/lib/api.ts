@@ -55,7 +55,7 @@ export const api = {
 
   /** Save / update abandoned-cart draft. Returns the cart_id. */
   saveCart: (body: {
-    email: string;
+    email?: string;
     cart_id?: string;
     items?: {
       photo_id?: string;
