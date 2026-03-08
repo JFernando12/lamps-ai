@@ -1,4 +1,4 @@
-import { CreditCard, Lock, MapPin, Package } from 'lucide-react';
+import { CreditCard, Lock, MapPin } from 'lucide-react';
 import { ShippingForm, User, CartItemState, PRODUCTS } from './types';
 
 const PRODUCT_IMAGES: Record<string, string> = {
@@ -114,9 +114,9 @@ export function PaymentStep({
       </div>
 
       {/* ── Security note ───────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-1.5 text-white/25 text-xs">
+      <div className="flex items-center justify-center gap-1.5 text-white/30 text-xs">
         <Lock size={11} />
-        Pago seguro con MercadoPago · SSL encriptado
+        Pago seguro · SSL encriptado
       </div>
 
       {error && (
@@ -128,14 +128,23 @@ export function PaymentStep({
       <button
         onClick={onPlaceOrder}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-black font-bold py-4 rounded-xl text-base transition-all disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2.5 font-bold py-4 rounded-2xl text-[15px] transition-all disabled:opacity-50 active:scale-[0.98] hover:brightness-110"
+        style={{ backgroundColor: '#FBD100', color: '#183C73' }}
       >
         {loading ? (
-          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+          <div
+            className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+            style={{ borderColor: '#183C73', borderTopColor: 'transparent' }}
+          />
         ) : (
           <>
-            <CreditCard size={18} />
-            Pagar ${total.toLocaleString()} MXN
+            <CreditCard size={17} />
+            <span>
+              Pagar con{' '}
+              <span style={{ color: '#009EE3', fontWeight: 800 }}>
+                Mercado Pago
+              </span>
+            </span>
           </>
         )}
       </button>

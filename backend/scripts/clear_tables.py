@@ -18,10 +18,11 @@ from app import config
 
 # Table name → list of primary key attribute names (hash key, [range key])
 TABLES = {
-    config.DYNAMO_TABLE_USERS:    ["email"],
-    config.DYNAMO_TABLE_PHOTOS:   ["photo_id"],
-    config.DYNAMO_TABLE_ORDERS:   ["order_id"],
-    config.DYNAMO_TABLE_CARTS:    ["cart_id"],
+    config.DYNAMO_TABLE_USERS:            ["email"],
+    config.DYNAMO_TABLE_PHOTOS:           ["photo_id"],
+    config.DYNAMO_TABLE_ORDERS:           ["order_id"],
+    config.DYNAMO_TABLE_CARTS:            ["cart_id"],
+    config.DYNAMO_TABLE_EMAIL_CAMPAIGNS:  ["campaign_id"],
 }
 
 dynamo = boto3.resource(

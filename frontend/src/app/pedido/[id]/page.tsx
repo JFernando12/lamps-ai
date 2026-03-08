@@ -7,20 +7,37 @@ import { getEvent } from '@/lib/pixelEvents';
 import {
   CheckCircle2,
   Clock,
+  CreditCard,
   Package,
   Truck,
   AlertCircle,
   Sparkles,
   MapPin,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
+
+const PRODUCT_CATALOG: Record<string, string> = {
+  rgb: 'Lámpara acrílica LED RGB',
+  madera: 'Lámpara base de madera',
+};
+
+interface OrderItem {
+  product_id: string;
+  quantity: number;
+  photo_id?: string;
+  engraving_text?: string;
+  spotify_url?: string;
+}
 
 interface Order {
   order_id: string;
   status: string;
-  product_name: string;
-  quantity: number;
-  unit_price: string;
+  product_name?: string;
+  quantity?: number;
+  unit_price?: string;
+  total_amount?: string;
+  items?: OrderItem[];
   shipping: {
     full_name: string;
     address: string;
@@ -33,6 +50,7 @@ interface Order {
   created_at: string;
   tracking_number?: string;
   mp_payment_id?: string;
+  mp_init_point?: string;
 }
 
 const STATUS_INFO: Record<
@@ -100,6 +118,7 @@ function OrderStatusContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const hasFiredPurchase = useRef(false);
 
   useEffect(() => {
@@ -120,20 +139,42 @@ function OrderStatusContent() {
         }
         const order = await api.get<Order>(`/api/orders/${id}`);
         setOrder(order);
+
+        // Fetch presigned photo URLs for all items that have a photo
+        if (order.items) {
+          const urls: Record<string, string> = {};
+          await Promise.all(
+            order.items
+              .filter((it) => it.photo_id)
+              .map(async (it) => {
+                try {
+                  const { url } = await api.getPhotoUrl(it.photo_id!);
+                  urls[it.photo_id!] = url;
+                } catch {
+                  // non-fatal: photo just won't display
+                }
+              }),
+          );
+          setPhotoUrls(urls);
+        }
+
+        const orderValue = parseFloat(
+          order.total_amount ?? order.unit_price ?? '0',
+        );
+        const orderName = order.items?.[0]
+          ? (PRODUCT_CATALOG[order.items[0].product_id] ??
+            order.items[0].product_id)
+          : (order.product_name ?? 'Lámpara');
         if (paymentStatus === 'success' && !hasFiredPurchase.current) {
           hasFiredPurchase.current = true;
-          // Use order_id as eventID so Meta deduplicates with the CAPI Purchase
-          // event sent from the backend when the payment was confirmed.
           getEvent('Purchase').track({
-            value: parseFloat(order.unit_price) * order.quantity,
+            value: orderValue,
             orderId: order.order_id,
-            contentName: order.product_name,
+            contentName: orderName,
           });
         }
         if (paymentStatus === 'failure') {
-          getEvent('PaymentFailed').track({
-            value: parseFloat(order.unit_price) * order.quantity,
-          });
+          getEvent('PaymentFailed').track({ value: orderValue });
         }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error desconocido');
@@ -264,15 +305,42 @@ function OrderStatusContent() {
             </div>
           )}
 
-          {/* Product */}
-          <div className="flex items-center gap-3 bg-white/3 rounded-xl p-4 mb-4">
-            <Package size={18} className="text-amber-400" />
-            <div>
-              <p className="font-medium">{order.product_name}</p>
-              <p className="text-white/40 text-sm">
-                ×{order.quantity} — ${order.unit_price} MXN
-              </p>
-            </div>
+          {/* Products */}
+          <div className="space-y-2 mb-4">
+            {(order.items ?? []).length > 0 ? (
+              order.items!.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 bg-white/3 rounded-xl p-4"
+                >
+                  {item.photo_id && photoUrls[item.photo_id] ? (
+                    <img
+                      src={photoUrls[item.photo_id]}
+                      alt="Tu foto"
+                      className="w-14 h-14 rounded-lg object-cover shrink-0"
+                    />
+                  ) : (
+                    <Package size={18} className="text-amber-400 shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">
+                      {PRODUCT_CATALOG[item.product_id] ?? item.product_id}
+                    </p>
+                    <p className="text-white/40 text-sm">×{item.quantity}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center gap-3 bg-white/3 rounded-xl p-4">
+                <Package size={18} className="text-amber-400" />
+                <div>
+                  <p className="font-medium">{order.product_name}</p>
+                  <p className="text-white/40 text-sm">
+                    ×{order.quantity} — ${order.unit_price} MXN
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Shipping */}
@@ -296,6 +364,26 @@ function OrderStatusContent() {
             </div>
           </div>
         </div>
+
+        {(order.status === 'pending_payment' ||
+          order.status === 'payment_failed') &&
+          order.mp_init_point && (
+            <a
+              href={order.mp_init_point}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl font-bold text-[15px] transition-all hover:brightness-110 active:scale-[0.98]"
+              style={{ backgroundColor: '#FBD100', color: '#183C73' }}
+            >
+              <CreditCard size={17} />
+              <span>
+                Pagar con{' '}
+                <span style={{ color: '#009EE3', fontWeight: 800 }}>
+                  Mercado Pago
+                </span>
+              </span>
+            </a>
+          )}
 
         <Link
           href="/mi-cuenta/pedidos"

@@ -87,15 +87,23 @@ def create_order(
     preference = pref_response["response"]
 
     # 3. Persist order
+    total_qty = sum(int(ci.get("quantity", 1)) for ci in cart_items)
+    first_catalog = _PRODUCT_CATALOG.get(cart_items[0].get("product_id", "rgb"), _PRODUCT_CATALOG["rgb"])
+    display_name = first_catalog["name"] if len(cart_items) == 1 else f"{first_catalog['name']} +{len(cart_items)-1} más"
+
     order_item = _compact({
         "order_id": order_id,
         "user_email": resolved_email,
         "cart_id": body.cart_id,
         "items": cart_items,
         "total_amount": str(total_amount),
+        "product_name": display_name,
+        "quantity": total_qty,
+        "unit_price": str(total_amount),
         "shipping": body.shipping.model_dump(),
         "status": "pending_payment",
         "mp_preference_id": preference["id"],
+        "mp_init_point": preference["init_point"],
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         # Attribution — pulled from cart so the frontend doesn't re-send it

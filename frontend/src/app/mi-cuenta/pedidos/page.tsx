@@ -22,6 +22,7 @@ interface Order {
   unit_price: string;
   quantity: number;
   created_at: string;
+  mp_init_point?: string;
 }
 
 const STATUS: Record<
