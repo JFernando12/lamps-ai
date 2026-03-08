@@ -16,15 +16,12 @@ import {
   Lock,
 } from 'lucide-react';
 import Link from 'next/link';
-
-const PRODUCT_CATALOG: Record<string, string> = {
-  rgb: 'Lámpara acrílica LED RGB',
-  madera: 'Lámpara base de madera',
-};
+import { PRODUCTS } from '@/app/checkout/components/types';
 
 interface OrderItem {
   product_id: string;
   quantity: number;
+  unit_price?: number;
   photo_id?: string;
   engraving_text?: string;
   spotify_url?: string;
@@ -33,11 +30,8 @@ interface OrderItem {
 interface Order {
   order_id: string;
   status: string;
-  product_name?: string;
-  quantity?: number;
-  unit_price?: string;
-  total_amount?: string;
-  items?: OrderItem[];
+  total_amount: string;
+  items: OrderItem[];
   shipping: {
     full_name: string;
     address: string;
@@ -158,13 +152,11 @@ function OrderStatusContent() {
           setPhotoUrls(urls);
         }
 
-        const orderValue = parseFloat(
-          order.total_amount ?? order.unit_price ?? '0',
-        );
-        const orderName = order.items?.[0]
-          ? (PRODUCT_CATALOG[order.items[0].product_id] ??
-            order.items[0].product_id)
-          : (order.product_name ?? 'Lámpara');
+        const orderValue = parseFloat(order.total_amount);
+        const orderName =
+          PRODUCTS[order.items[0]?.product_id as keyof typeof PRODUCTS]?.name ??
+          order.items[0]?.product_id ??
+          'Lámpara';
         if (paymentStatus === 'success' && !hasFiredPurchase.current) {
           hasFiredPurchase.current = true;
           getEvent('Purchase').track({
@@ -307,40 +299,36 @@ function OrderStatusContent() {
 
           {/* Products */}
           <div className="space-y-2 mb-4">
-            {(order.items ?? []).length > 0 ? (
-              order.items!.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 bg-white/3 rounded-xl p-4"
-                >
-                  {item.photo_id && photoUrls[item.photo_id] ? (
-                    <img
-                      src={photoUrls[item.photo_id]}
-                      alt="Tu foto"
-                      className="w-14 h-14 rounded-lg object-cover shrink-0"
-                    />
-                  ) : (
-                    <Package size={18} className="text-amber-400 shrink-0" />
-                  )}
-                  <div>
-                    <p className="font-medium">
-                      {PRODUCT_CATALOG[item.product_id] ?? item.product_id}
-                    </p>
-                    <p className="text-white/40 text-sm">×{item.quantity}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex items-center gap-3 bg-white/3 rounded-xl p-4">
-                <Package size={18} className="text-amber-400" />
+            {order.items.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-3 bg-white/3 rounded-xl p-4"
+              >
+                {item.photo_id && photoUrls[item.photo_id] ? (
+                  <img
+                    src={photoUrls[item.photo_id]}
+                    alt="Tu foto"
+                    className="w-14 h-14 rounded-lg object-cover shrink-0"
+                  />
+                ) : (
+                  <Package size={18} className="text-amber-400 shrink-0" />
+                )}
                 <div>
-                  <p className="font-medium">{order.product_name}</p>
+                  <p className="font-medium">
+                    {PRODUCTS[item.product_id as keyof typeof PRODUCTS]?.name ??
+                      item.product_id}
+                  </p>
                   <p className="text-white/40 text-sm">
-                    ×{order.quantity} — ${order.unit_price} MXN
+                    ×{item.quantity}
+                    {item.unit_price != null && (
+                      <span className="ml-2">
+                        ${item.unit_price * item.quantity} MXN
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
-            )}
+            ))}
           </div>
 
           {/* Shipping */}

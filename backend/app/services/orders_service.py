@@ -2,6 +2,7 @@
 import logging
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import mercadopago
 from fastapi import HTTPException
@@ -50,6 +51,7 @@ def create_order(
 
     mp_items = []
     total_amount = 0.0
+    enriched_items = []
     for ci in cart_items:
         catalog = _PRODUCT_CATALOG.get(ci.get("product_id", "rgb"), _PRODUCT_CATALOG["rgb"])
         qty = int(ci.get("quantity", 1))
@@ -60,6 +62,7 @@ def create_order(
             "currency_id": "MXN",
         })
         total_amount += catalog["price"] * qty
+        enriched_items.append({**ci, "unit_price": Decimal(str(catalog["price"]))})
 
     preference_payload = {
         "items": mp_items,
@@ -95,7 +98,7 @@ def create_order(
         "order_id": order_id,
         "user_email": resolved_email,
         "cart_id": body.cart_id,
-        "items": cart_items,
+        "items": enriched_items,
         "total_amount": str(total_amount),
         "product_name": display_name,
         "quantity": total_qty,
