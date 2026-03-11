@@ -53,15 +53,19 @@ TABLES = [
 
     # ── Orders ───────────────────────────────────────────────────────────────
     # Primary key : order_id (uuid)
-    # GSI         : user_email → list all orders by user
+    # GSI         : user_email → list all orders by registered user
+    # GSI         : email → list agent orders by customer email
+    # GSI         : whatsapp_phone → list agent orders by WhatsApp number
     {
         "TableName": config.DYNAMO_TABLE_ORDERS,
         "KeySchema": [
             {"AttributeName": "order_id", "KeyType": "HASH"},
         ],
         "AttributeDefinitions": [
-            {"AttributeName": "order_id",   "AttributeType": "S"},
-            {"AttributeName": "user_email", "AttributeType": "S"},
+            {"AttributeName": "order_id",       "AttributeType": "S"},
+            {"AttributeName": "user_email",     "AttributeType": "S"},
+            {"AttributeName": "email",          "AttributeType": "S"},
+            {"AttributeName": "whatsapp_phone", "AttributeType": "S"},
         ],
         "BillingMode": "PAY_PER_REQUEST",
         "GlobalSecondaryIndexes": [
@@ -69,6 +73,20 @@ TABLES = [
                 "IndexName": "email-index",
                 "KeySchema": [
                     {"AttributeName": "user_email", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            },
+            {
+                "IndexName": "agent_email-index",
+                "KeySchema": [
+                    {"AttributeName": "email", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            },
+            {
+                "IndexName": "whatsapp_phone-index",
+                "KeySchema": [
+                    {"AttributeName": "whatsapp_phone", "KeyType": "HASH"},
                 ],
                 "Projection": {"ProjectionType": "ALL"},
             },
@@ -101,7 +119,51 @@ TABLES = [
         ],
         "BillingMode": "PAY_PER_REQUEST",
     },
+    # ── Designs (agent AI jobs) ─────────────────────────────────────────
+    # Primary key : job_id (dsn_{uuid})
+    {
+        "TableName": config.DYNAMO_TABLE_DESIGNS,
+        "KeySchema": [
+            {"AttributeName": "job_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "job_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
 
+    # ── Payments (MercadoPago link registry) ─────────────────────────
+    # Primary key : payment_id
+    # GSI         : order_ref        → MP webhook lookup by external_reference
+    # GSI         : whatsapp_phone   → lookup payments by customer WhatsApp
+    {
+        "TableName": config.DYNAMO_TABLE_PAYMENTS,
+        "KeySchema": [
+            {"AttributeName": "payment_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "payment_id",     "AttributeType": "S"},
+            {"AttributeName": "order_ref",      "AttributeType": "S"},
+            {"AttributeName": "whatsapp_phone", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexName": "order_ref-index",
+                "KeySchema": [
+                    {"AttributeName": "order_ref", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            },
+            {
+                "IndexName": "whatsapp_phone-index",
+                "KeySchema": [
+                    {"AttributeName": "whatsapp_phone", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            },
+        ],
+    },
 ]
 
 
@@ -137,7 +199,8 @@ def create_tables() -> None:
     print(f"Region  : {config.AWS_REGION}")
     print(f"Tables  : {config.DYNAMO_TABLE_USERS}, {config.DYNAMO_TABLE_PHOTOS}, "
           f"{config.DYNAMO_TABLE_ORDERS}, {config.DYNAMO_TABLE_CARTS}, "
-          f"{config.DYNAMO_TABLE_EMAIL_CAMPAIGNS}")
+          f"{config.DYNAMO_TABLE_EMAIL_CAMPAIGNS}, {config.DYNAMO_TABLE_DESIGNS}, "
+          f"{config.DYNAMO_TABLE_PAYMENTS}")
     print()
 
     for schema in TABLES:

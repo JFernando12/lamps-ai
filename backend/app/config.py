@@ -10,6 +10,15 @@ JWT_SECRET = os.environ["JWT_SECRET"]
 ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 MP_ACCESS_TOKEN = os.environ["MP_ACCESS_TOKEN"]
 MP_PUBLIC_KEY = os.environ["MP_PUBLIC_KEY"]
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+
+# ── Agent platform ───────────────────────────────────────────
+# Shared secret the AI platform sends in Authorization: Bearer {AGENT_API_KEY}
+AGENT_API_KEY = os.getenv("AGENT_API_KEY", "")
+# Base URL of the AI platform (for async callbacks)
+AI_PLATFORM_BASE_URL = os.getenv("AI_PLATFORM_BASE_URL", "https://fake-ai-platform.example.com")
+# Secret sent in X-Webhook-Secret when calling the platform callbacks
+AGENT_WEBHOOK_SECRET = os.getenv("AGENT_WEBHOOK_SECRET", "")
 
 # ── AWS / infra (hardcoded, override via env if needed) ───────
 AWS_REGION = "us-east-1"
@@ -21,6 +30,8 @@ DYNAMO_TABLE_PHOTOS = "lamps_photos"
 DYNAMO_TABLE_ORDERS = "lamps_orders"
 DYNAMO_TABLE_CARTS = "lamps_carts"
 DYNAMO_TABLE_EMAIL_CAMPAIGNS = "lamps_email_campaigns"
+DYNAMO_TABLE_DESIGNS = "lamps_designs"
+DYNAMO_TABLE_PAYMENTS = "lamps_payments"
 
 # ── Email (Amazon SES) ────────────────────────────────────────
 # Must be a verified sender in SES. Leave empty to disable cart emails.

@@ -4,9 +4,27 @@ from ..dependencies import get_current_admin
 from ..schemas.admin import UpdateOrderStatusRequest
 from ..schemas.email_marketing import SendCampaignRequest, SendTrackingRequest
 from ..services import admin_service
+from ..services import agent_service
 from ..services import email_marketing_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+# ── Transfer payment review ───────────────────────────────────────────────────
+
+@router.get("/payments/pending-transfers")
+def list_pending_transfers(_admin=Depends(get_current_admin)):
+    return agent_service.list_pending_transfers()
+
+
+@router.post("/payments/{payment_id}/review")
+def review_transfer_payment(
+    payment_id: str,
+    approved: bool,
+    note: str | None = None,
+    _admin=Depends(get_current_admin),
+):
+    return agent_service.review_transfer_payment(payment_id, approved, note)
 
 
 @router.get("/orders")

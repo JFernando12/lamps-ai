@@ -1,0 +1,315 @@
+================================================================
+TOOL 1 — Crear link de pago
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/payments/link \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100,
+    "concept": "Apartado The Dream Gift",
+    "order_ref": "TDG-5215551234-1741600000",
+    "expiration_hours": 24,
+    "whatsapp_phone": "5215551234",
+    "_session_id": "sess_abc123",
+    "_channel_id": "ch_xyz"
+  }'
+
+Respuesta:
+{
+  "payment_id": "pay_abc123",
+  "payment_url": "https://www.mercadopago.com.mx/checkout/...",
+  "expires_at": "2026-03-11T18:00:00Z"
+}
+
+
+================================================================
+TOOL 2 — Registrar comprobante de transferencia
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/payments/transfer \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100,
+    "concept": "Apartado The Dream Gift",
+    "order_ref": "TDG-5215551234-1741600000",
+    "proof_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/proof.jpg",
+    "whatsapp_phone": "5215551234",
+    "_session_id": "sess_abc123",
+    "_channel_id": "ch_xyz"
+  }'
+
+Respuesta:
+{
+  "payment_id": "pay_tr_a1b2c3d4e5",
+  "status": "pending_verification",
+  "message": "Comprobante recibido. Un asesor lo verificará en breve."
+}
+
+NOTA: El pago queda en "pending_verification" hasta que el admin lo apruebe desde el panel.
+      Cuando sea aprobado, el ecommerce notifica automáticamente vía callback.
+      Para pagos con MercadoPago usar TOOL 1.
+
+
+================================================================
+TOOL 3 — Consultar estado de pago
+================================================================
+curl -X GET "https://api.thedreamgiftmx.com/api/payments?payment_id=pay_abc123" \
+  -H "Authorization: Bearer {API_KEY}"
+
+Respuesta:
+{
+  "payment_id": "pay_abc123",
+  "status": "approved",
+  "amount": 100,
+  "paid_at": "2026-03-10T15:30:00Z"
+}
+
+Status posibles: pending | pending_verification | approved | rejected | expired
+
+
+================================================================
+TOOL 4 — Solicitar generación de diseño
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/designs \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "photo_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/msg_abc.jpg",
+    "product_id": "lamp_led_16",
+    "_session_id": "sess_abc123",
+    "_channel_id": "ch_xyz",
+    "whatsapp_phone": "5215551234"
+  }'
+
+product_id valores: lamp_led_16 | lamp_wood
+
+Respuesta:
+{
+  "job_id": "dsn_abc123",
+  "estimated_seconds": 30
+}
+
+NOTA: El diseño se genera de forma asíncrona. El ecommerce notifica
+a la plataforma vía callback cuando termina. El agente NO necesita
+hacer polling — espera el evento del callback.
+
+
+================================================================
+TOOL 5 — Consultar estado de diseño (polling opcional)
+================================================================
+curl -X GET "https://api.thedreamgiftmx.com/api/designs?job_id=dsn_abc123" \
+  -H "Authorization: Bearer {API_KEY}"
+
+Respuesta:
+{
+  "job_id": "dsn_abc123",
+  "status": "ready",
+  "design_url": "https://lamps-ai.s3.amazonaws.com/designs/dsn_abc123.png",
+  "iteration": 1,
+  "error_message": null
+}
+
+Status posibles: processing | ready | failed
+
+
+================================================================
+TOOL 6 — Aprobar diseño
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/designs/approve \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_id": "dsn_abc123"
+  }'
+
+Respuesta:
+{
+  "approved": true
+}
+
+
+================================================================
+TOOL 7 — Solicitar revisión del diseño
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/designs/revision \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_id": "dsn_abc123",
+    "change_notes": "El recorte quedó muy al borde, centra más la cara"
+  }'
+
+Respuesta:
+{
+  "job_id": "dsn_abc124",
+  "estimated_seconds": 30
+}
+
+NOTA: El nuevo job_id es distinto al original. El ecommerce notifica
+a la plataforma vía callback con este nuevo job_id cuando esté listo.
+
+
+================================================================
+TOOL 8 — Crear pedido (registro inicial)
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/orders \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_id": "pay_abc123",
+    "whatsapp_phone": "5215551234"
+  }'
+
+Respuesta:
+{
+  "order_id": "ord_xyz789",
+  "order_number": "TDG-2026-0042",
+  "status": "apartado"
+}
+
+NOTA: Solo se requiere el pago inicial confirmado y el teléfono.
+El status siempre inicia en "apartado". Los demás datos se llenan con TOOL 8.
+
+
+================================================================
+TOOL 9 — Consultar estado del pedido
+================================================================
+curl -X GET "https://api.thedreamgiftmx.com/api/orders?order_id=ord_xyz789" \
+  -H "Authorization: Bearer {API_KEY}"
+
+Respuesta:
+{
+  "order_id": "ord_xyz789",
+  "order_number": "TDG-2026-0042",
+  "status": "apartado",
+  "whatsapp_phone": "5215551234",
+  "product_id": "lamp_led_16",
+  "product_name": "Lámpara LED 16 colores",
+  "design_job_id": "dsn_abc123",
+  "payment_id": "pay_abc123",
+  "balance_payment_id": null,
+  "customer_name": "María García López",
+  "street": null,
+  "neighborhood": null,
+  "city": null,
+  "state": null,
+  "zip_code": null,
+  "email": null,
+  "custom_text": null,
+  "spotify_ref": null,
+  "missing_fields": ["street", "neighborhood", "city", "state", "zip_code"],
+  "ready_to_confirm": false,
+  "created_at": "2026-03-10T12:00:00Z",
+  "updated_at": "2026-03-10T12:05:00Z"
+}
+
+NOTA: "missing_fields" indica qué falta para poder llamar a confirm.
+      "ready_to_confirm": true cuando no falta nada.
+
+
+================================================================
+TOOL 10 — Actualizar datos del pedido
+================================================================
+curl -X PATCH https://api.thedreamgiftmx.com/api/orders \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_id": "ord_xyz789",
+    "product_id": "lamp_led_16",
+    "design_job_id": "dsn_abc123",
+    "customer_name": "María García López",
+    "street": "Av. Insurgentes 123 Int 4",
+    "neighborhood": "Del Valle",
+    "city": "Ciudad de México",
+    "state": "CDMX",
+    "zip_code": "03100",
+    "custom_text": "Para siempre juntos",
+    "spotify_ref": "Ed Sheeran - Perfect",
+    "email": "maria@ejemplo.com"
+  }'
+
+Todos los campos son opcionales excepto "order_id".
+Para registrar el pago del saldo: incluir "balance_payment_id": "pay_saldo_456"
+
+Respuesta:
+{
+  "order_id": "ord_xyz789",
+  "updated": ["product_id", "product_name", "design_job_id", "customer_name", ...]
+}
+
+
+================================================================
+TOOL 11 — Confirmar pedido (apartado → en producción)
+================================================================
+curl -X POST https://api.thedreamgiftmx.com/api/orders/confirm \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_id": "ord_xyz789"
+  }'
+
+Valida que el pedido tenga: product_id, design_job_id (diseño aprobado),
+nombre, dirección completa, pago inicial aprobado y (si hay) saldo aprobado.
+
+Respuesta:
+{
+  "order_id": "ord_xyz789",
+  "order_number": "TDG-2026-0042",
+  "status": "en_produccion",
+  "estimated_production_days": 2,
+  "estimated_delivery_days": "2-5"
+}
+
+Errores posibles:
+- incomplete_order  → faltan campos, incluye "missing_fields": [...]
+- design_not_approved
+- payment_not_approved
+- balance_not_approved
+
+
+================================================================
+TOOL 12 — Consultar pedidos por WhatsApp
+================================================================
+curl -X GET "https://api.thedreamgiftmx.com/api/orders/by-whatsapp?whatsapp_phone=5215551234" \
+  -H "Authorization: Bearer {API_KEY}"
+
+Respuesta:
+{
+  "orders": [
+    {
+      "order_id": "ord_xyz789",
+      "order_number": "TDG-2026-0042",
+      "status": "enviado",
+      "created_at": "2026-03-10T12:00:00Z",
+      "product_name": "Lámpara LED 16 colores",
+      "tracking_number": "1Z999AA10123456784",
+      "carrier": "DHL",
+      "tracking_url": "https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=xxx",
+      "estimated_delivery": "2026-03-14"
+    }
+  ]
+}
+
+
+================================================================
+TOOL 13 — Consultar pedidos por correo
+================================================================
+curl -X GET "https://api.thedreamgiftmx.com/api/orders/by-email?email=maria@ejemplo.com" \
+  -H "Authorization: Bearer {API_KEY}"
+
+Respuesta:
+{
+  "orders": [
+    {
+      "order_id": "ord_xyz789",
+      "order_number": "TDG-2026-0042",
+      "status": "enviado",
+      "created_at": "2026-03-10T12:00:00Z",
+      "product_name": "Lámpara LED 16 colores",
+      "tracking_number": "1Z999AA10123456784",
+      "carrier": "DHL",
+      "tracking_url": "https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=xxx",
+      "estimated_delivery": "2026-03-14"
+    }
+  ]
+}

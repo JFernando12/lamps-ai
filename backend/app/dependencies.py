@@ -1,7 +1,7 @@
 """FastAPI dependency injectors for authentication."""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from . import auth_utils
+from . import auth_utils, config
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -29,3 +29,11 @@ def optional_user(
     if not credentials:
         return None
     return auth_utils.decode_token(credentials.credentials)
+
+
+def require_agent_key(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> None:
+    """Validates that the request carries the shared AGENT_API_KEY."""
+    if not credentials or credentials.credentials != config.AGENT_API_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid agent API key")

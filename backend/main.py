@@ -10,6 +10,7 @@ from app.routers.catalog import router as catalog_router
 from app.routers.photos import router as photos_router
 from app.routers.orders import router as orders_router
 from app.routers.admin import router as admin_router
+from app.routers.agent import router as agent_router
 
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.include_router(photos_router)
 app.include_router(orders_router)
 app.include_router(admin_router)
 app.include_router(catalog_router)
+app.include_router(agent_router)
 
 
 @app.get("/health")
