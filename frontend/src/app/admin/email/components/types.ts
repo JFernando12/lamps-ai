@@ -2,8 +2,8 @@ export type SegmentType =
   | 'all'
   | 'customers'
   | 'abandoned_carts'
-  | 'payment_failed'
-  | 'pending_payment';
+  | 'rejected'
+  | 'pending';
 
 export type TemplateCat = 'transactional' | 'recovery' | 'campaign';
 

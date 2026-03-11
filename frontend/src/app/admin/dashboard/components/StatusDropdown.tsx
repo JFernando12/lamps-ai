@@ -2,18 +2,22 @@
 
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { STATUSES, STATUS_LABELS } from './types';
+import { CHECKOUT_STATUSES, WHATSAPP_STATUSES, STATUS_LABELS } from './types';
 
 export function StatusDropdown({
   current,
+  orderType,
   disabled,
   onChange,
 }: {
   current: string;
+  orderType: 'checkout' | 'whatsapp';
   disabled: boolean;
   onChange: (status: string, tracking?: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const statuses =
+    orderType === 'whatsapp' ? WHATSAPP_STATUSES : CHECKOUT_STATUSES;
 
   return (
     <div className="relative">
@@ -34,22 +38,26 @@ export function StatusDropdown({
 
       {open && (
         <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl py-1 z-20 min-w-40 shadow-2xl">
-          {STATUSES.filter((s) => s !== current).map((s) => (
-            <button
-              key={s}
-              onClick={async () => {
-                setOpen(false);
-                let tracking: string | undefined;
-                if (s === 'shipped') {
-                  tracking = window.prompt('Número de rastreo (opcional):') ?? undefined;
-                }
-                onChange(s, tracking);
-              }}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors"
-            >
-              {STATUS_LABELS[s]}
-            </button>
-          ))}
+          {statuses
+            .filter((s) => s !== current)
+            .map((s) => (
+              <button
+                key={s}
+                onClick={async () => {
+                  setOpen(false);
+                  let tracking: string | undefined;
+                  if (s === 'shipped') {
+                    tracking =
+                      window.prompt('Número de rastreo (opcional):') ??
+                      undefined;
+                  }
+                  onChange(s, tracking);
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors"
+              >
+                {STATUS_LABELS[s]}
+              </button>
+            ))}
         </div>
       )}
     </div>

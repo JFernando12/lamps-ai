@@ -91,10 +91,10 @@ def _send_capi(events: list[dict]) -> None:
 # ── CAPI send functions ───────────────────────────────────────
 
 def _send_purchase(order: dict) -> None:
-    """order keys: order_id, user_email, unit_price, quantity, product_name,
+    """order keys: order_id, user_email, total_amount, product_name,
     shipping (dict with phone/full_name), client_ip, user_agent, fbclid, fbp"""
     shipping = order.get("shipping") or {}
-    value = float(order.get("unit_price", 0)) * int(order.get("quantity", 1))
+    value = float(order.get("total_amount", 0))
     user_data = _build_user_data(
         email=order.get("user_email", ""),
         phone=shipping.get("phone", ""),
@@ -114,17 +114,17 @@ def _send_purchase(order: dict) -> None:
         "custom_data": {
             "currency": "MXN",
             "value": str(value),
-            "content_ids": [order.get("product_name", "")],
+            "content_ids": [(order.get("items") or [{}])[0].get("product_id", "")],
             "content_type": "product",
         },
     }])
 
 
 def _send_initiate_checkout(order: dict) -> None:
-    """order keys: order_id, user_email, unit_price, quantity,
+    """order keys: order_id, user_email, total_amount,
     checkout_event_id, client_ip, user_agent, fbclid, fbp"""
     order_id = order["order_id"]
-    value = float(order.get("unit_price", 0)) * int(order.get("quantity", 1))
+    value = float(order.get("total_amount", 0))
     _send_capi([{
         "event_name": "InitiateCheckout",
         "event_time": int(time.time()),

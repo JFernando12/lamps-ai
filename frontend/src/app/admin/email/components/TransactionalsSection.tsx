@@ -6,22 +6,22 @@ import { api } from '@/lib/api';
 import type { EmailOrder } from './types';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending_payment: 'Pago pendiente',
-  paid: 'Pagado',
+  pending: 'Pago pendiente',
+  approved: 'Pagado',
   in_process: 'En producción',
   shipped: 'Enviado',
   delivered: 'Entregado',
-  payment_failed: 'Pago fallido',
+  rejected: 'Pago fallido',
   cancelled: 'Cancelado',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending_payment: 'text-yellow-400 bg-yellow-400/10',
-  paid: 'text-green-400 bg-green-400/10',
+  pending: 'text-yellow-400 bg-yellow-400/10',
+  approved: 'text-green-400 bg-green-400/10',
   in_process: 'text-amber-400 bg-amber-400/10',
   shipped: 'text-blue-400 bg-blue-400/10',
   delivered: 'text-emerald-400 bg-emerald-400/10',
-  payment_failed: 'text-red-400 bg-red-400/10',
+  rejected: 'text-red-400 bg-red-400/10',
   cancelled: 'text-red-400/70 bg-red-400/5',
 };
 

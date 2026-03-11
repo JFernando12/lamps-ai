@@ -14,13 +14,13 @@ import {
   AlertCircle,
   ChevronRight,
 } from "lucide-react";
+import { PRODUCTS } from '@/app/checkout/components/types';
 
 interface Order {
   order_id: string;
   status: string;
-  product_name: string;
-  unit_price: string;
-  quantity: number;
+  items: Array<{ product_id: string }>;
+  total_amount: string;
   created_at: string;
   mp_init_point?: string;
 }
@@ -29,12 +29,12 @@ const STATUS: Record<
   string,
   { label: string; icon: React.ReactNode; color: string }
 > = {
-  pending_payment: {
+  pending: {
     label: 'Pendiente de pago',
     icon: <Clock size={14} />,
     color: 'text-yellow-400 bg-yellow-400/10',
   },
-  paid: {
+  approved: {
     label: 'Pago confirmado',
     icon: <CheckCircle2 size={14} />,
     color: 'text-green-400 bg-green-400/10',
@@ -54,7 +54,7 @@ const STATUS: Record<
     icon: <CheckCircle2 size={14} />,
     color: 'text-green-400 bg-green-400/10',
   },
-  payment_failed: {
+  rejected: {
     label: 'Pago fallido',
     icon: <AlertCircle size={14} />,
     color: 'text-red-400 bg-red-400/10',
@@ -124,7 +124,7 @@ export default function MyOrdersPage() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => {
-              const s = STATUS[order.status] ?? STATUS.pending_payment;
+              const s = STATUS[order.status] ?? STATUS.pending;
               return (
                 <Link
                   key={order.order_id}
@@ -137,10 +137,16 @@ export default function MyOrdersPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{order.product_name}</p>
+                    <p className="font-medium truncate">
+                      {
+                        PRODUCTS[
+                          order.items[0].product_id as keyof typeof PRODUCTS
+                        ].name
+                      }
+                    </p>
                     <p className="text-white/40 text-sm">
                       {new Date(order.created_at).toLocaleDateString('es-MX')} ·
-                      ${order.unit_price} MXN
+                      ${order.total_amount} MXN
                     </p>
                     <span
                       className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}

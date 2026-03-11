@@ -52,18 +52,18 @@ def create_design(body: CreateDesignRequest):
 
 
 @router.get("/designs")
-def get_design_status(job_id: str):
-    return agent_service.get_design_status(job_id)
+def get_design_status(design_id: str):
+    return agent_service.get_design_status(design_id)
 
 
 @router.post("/designs/approve")
 def approve_design(body: ApproveDesignRequest):
-    return agent_service.approve_design(body.job_id)
+    return agent_service.approve_design(body.design_id)
 
 
 @router.post("/designs/revision", status_code=202)
 def request_revision(body: RevisionDesignRequest):
-    return agent_service.request_revision(body.job_id, body)
+    return agent_service.request_revision(body.design_id, body)
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

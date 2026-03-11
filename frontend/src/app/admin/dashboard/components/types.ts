@@ -8,18 +8,44 @@ export interface ShippingInfo {
   phone: string;
 }
 
+export interface Payment {
+  payment_id: string;
+  method: 'mercadopago' | 'transfer';
+  concept: string;
+  amount: number;
+  status:
+    | 'pending'
+    | 'pending_verification'
+    | 'approved'
+    | 'rejected'
+    | 'expired';
+}
+
 export interface Order {
   order_id: string;
-  user_email: string;
-  product_name: string;
-  unit_price: string;
-  quantity: number;
+  type: 'checkout' | 'whatsapp';
   status: string;
   created_at: string;
-  shipping: ShippingInfo;
   tracking_number?: string;
+
+  // checkout-specific
+  user_email?: string;
+  total_amount?: string;
+  quantity?: number;
+  shipping?: ShippingInfo;
   photo_id?: string;
   photo_url?: string;
+
+  // whatsapp-specific
+  whatsapp_phone?: string;
+  product_id?: string;
+  design_id?: string;
+  design_url?: string;
+  design_status?: string;
+  design_approved?: boolean;
+  payments?: Payment[];
+  paid_total?: number;
+  email?: string;
 }
 
 export interface Stats {
@@ -30,32 +56,60 @@ export interface Stats {
   conversion_rate_pct: number;
 }
 
+export interface PendingTransfer {
+  payment_id: string;
+  order_id: string;
+  amount: number;
+  concept: string;
+  proof_url: string;
+  whatsapp_phone: string;
+  created_at: string;
+}
+
 export const STATUSES = [
-  'pending_payment',
-  'paid',
+  'pending',
+  'approved',
   'in_process',
   'shipped',
   'delivered',
-  'payment_failed',
+  'rejected',
   'cancelled',
 ];
 
 export const STATUS_LABELS: Record<string, string> = {
-  pending_payment: 'Pendiente de pago',
-  paid: 'Pagado',
+  pending: 'Pendiente de pago',
+  approved: 'Pagado',
   in_process: 'En producción',
   shipped: 'Enviado',
   delivered: 'Entregado',
-  payment_failed: 'Pago fallido',
+  rejected: 'Pago fallido',
   cancelled: 'Cancelado',
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  pending_payment: 'text-yellow-400 bg-yellow-400/10',
-  paid: 'text-green-400 bg-green-400/10',
+  pending: 'text-yellow-400 bg-yellow-400/10',
+  approved: 'text-green-400 bg-green-400/10',
   in_process: 'text-amber-400 bg-amber-400/10',
   shipped: 'text-blue-400 bg-blue-400/10',
   delivered: 'text-green-500 bg-green-500/10',
-  payment_failed: 'text-red-400 bg-red-400/10',
+  rejected: 'text-red-400 bg-red-400/10',
   cancelled: 'text-red-400 bg-red-400/10',
 };
+
+// Statuses shown in the admin dropdown per order type
+export const CHECKOUT_STATUSES = [
+  'pending',
+  'approved',
+  'in_process',
+  'shipped',
+  'delivered',
+  'rejected',
+  'cancelled',
+];
+export const WHATSAPP_STATUSES = [
+  'pending',
+  'in_process',
+  'shipped',
+  'delivered',
+  'cancelled',
+];

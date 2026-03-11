@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const load = async () => {
@@ -78,12 +79,15 @@ export default function AdminDashboard() {
 
   const filtered = orders.filter((o) => {
     const matchStatus = filterStatus === 'all' || o.status === filterStatus;
+    const matchType = filterType === 'all' || o.type === filterType;
+    const q = search.toLowerCase();
     const matchSearch =
       !search ||
-      o.user_email.includes(search) ||
-      o.shipping?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      o.order_id.includes(search);
-    return matchStatus && matchSearch;
+      o.user_email?.includes(q) ||
+      o.whatsapp_phone?.includes(q) ||
+      o.shipping?.full_name?.toLowerCase().includes(q) ||
+      o.order_id.toLowerCase().includes(q);
+    return matchStatus && matchType && matchSearch;
   });
 
   if (authLoading || loading)
@@ -124,6 +128,8 @@ export default function AdminDashboard() {
           onSearch={setSearch}
           filterStatus={filterStatus}
           onFilterStatus={setFilterStatus}
+          filterType={filterType}
+          onFilterType={setFilterType}
         />
 
         {/* ── MOBILE: Cards ───────────────────────────────────────── */}

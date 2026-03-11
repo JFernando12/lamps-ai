@@ -10,14 +10,16 @@ from ..pixel_events import pixel_events_list
 from ..schemas.admin import UpdateOrderStatusRequest
 
 ORDER_STATUSES = [
-    "pending_payment",
-    "paid",
+    "pending",
+    "approved",
     "in_process",
     "shipped",
     "delivered",
-    "payment_failed",
+    "rejected",
     "cancelled",
 ]
+
+_PAID_STATUSES_ALL = ("approved", "in_process", "shipped", "delivered")
 
 
 def _scan_all(table) -> list:
@@ -34,17 +36,53 @@ def list_orders() -> list:
     orders = _scan_all(database.orders_table())
 
     photos_cache: dict = {}
+    designs_cache: dict = {}
+
     for o in orders:
-        phid = o.get("photo_id")
-        if phid and not o.get("photo_url"):
-            if phid not in photos_cache:
-                photos_cache[phid] = (
-                    database.photos_table().get_item(Key={"photo_id": phid}).get("Item")
-                )
-            if photos_cache.get(phid):
-                key = photos_cache[phid].get("s3_key")
-                if key:
-                    o["photo_url"] = s3_helper.get_presigned_url(key)
+        if o.get("whatsapp_phone"):
+            o["type"] = "whatsapp"
+            # Fetch payments linked to this order
+            payments_resp = database.payments_table().query(
+                IndexName="order_id-index",
+                KeyConditionExpression="order_id = :ref",
+                ExpressionAttributeValues={":ref": o["order_id"]},
+            )
+            o["payments"] = [
+                {
+                    "payment_id": p["payment_id"],
+                    "method": p.get("method"),
+                    "concept": p.get("concept"),
+                    "amount": float(p.get("amount", 0)),
+                    "status": p.get("status"),
+                }
+                for p in payments_resp.get("Items", [])
+            ]
+            o["paid_total"] = sum(
+                p["amount"] for p in o["payments"] if p["status"] == "approved"
+            )
+            # Fetch design url
+            dsn_id = o.get("design_id")
+            if dsn_id:
+                if dsn_id not in designs_cache:
+                    designs_cache[dsn_id] = database.designs_table().get_item(
+                        Key={"design_id": dsn_id}
+                    ).get("Item")
+                if designs_cache.get(dsn_id):
+                    o["design_url"] = designs_cache[dsn_id].get("design_url")
+                    o["design_status"] = designs_cache[dsn_id].get("status")
+                    o["design_approved"] = designs_cache[dsn_id].get("approved", False)
+        else:
+            o["type"] = "checkout"
+            phid = (o.get("items") or [{}])[0].get("photo_id") or o.get("photo_id")
+            if phid and not o.get("photo_url"):
+                if phid not in photos_cache:
+                    photos_cache[phid] = (
+                        database.photos_table().get_item(Key={"photo_id": phid}).get("Item")
+                    )
+                if photos_cache.get(phid):
+                    key = photos_cache[phid].get("s3_key")
+                    if key:
+                        o["photo_url"] = s3_helper.get_presigned_url(key)
 
     orders.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return orders
@@ -84,17 +122,16 @@ def update_order_status(order_id: str, body: UpdateOrderStatusRequest) -> dict:
 
 
 def get_stats() -> dict:
+    from ..catalog import PRODUCTS
+
     total_photos = database.photos_table().scan(Select="COUNT").get("Count", 0)
 
     orders = _scan_all(database.orders_table())
-    paid_orders = [
-        o for o in orders
-        if o.get("status") in ("paid", "in_process", "shipped", "delivered")
-    ]
-    total_revenue = sum(
-        float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
-        for o in paid_orders
-    )
+    paid_orders = [o for o in orders if o.get("status") in _PAID_STATUSES_ALL]
+
+    total_revenue = 0.0
+    for o in paid_orders:
+        total_revenue += float(o.get("total_amount", 0))
 
     return {
         "total_photos_uploaded": total_photos,
@@ -107,7 +144,7 @@ def get_stats() -> dict:
     }
 
 
-_PAID_STATUSES = ("paid", "in_process", "shipped", "delivered")
+_PAID_STATUSES = _PAID_STATUSES_ALL
 
 
 def get_ads_attribution() -> dict:
@@ -123,7 +160,7 @@ def get_ads_attribution() -> dict:
         funnel[src]["initiated"] += 1
         if o.get("status") in _PAID_STATUSES:
             funnel[src]["paid"] += 1
-            funnel[src]["revenue"] += float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
+            funnel[src]["revenue"] += float(o.get("total_amount", 0))
 
     funnel_list = []
     for v in sorted(funnel.values(), key=lambda x: x["revenue"], reverse=True):
@@ -148,7 +185,7 @@ def get_ads_attribution() -> dict:
         campaigns[key]["initiated"] += 1
         if o.get("status") in _PAID_STATUSES:
             campaigns[key]["paid"] += 1
-            campaigns[key]["revenue"] += float(o.get("unit_price", 0)) * int(o.get("quantity", 1))
+            campaigns[key]["revenue"] += float(o.get("total_amount", 0))
 
     campaign_list = sorted(campaigns.values(), key=lambda x: x["revenue"], reverse=True)
     for c in campaign_list:
@@ -158,7 +195,7 @@ def get_ads_attribution() -> dict:
     ads_paid = [o for o in orders if o.get("utm_source") and o.get("status") in _PAID_STATUSES]
     ads_initiated = [o for o in orders if o.get("utm_source")]
     ads_revenue = sum(
-        float(o.get("unit_price", 0)) * int(o.get("quantity", 1)) for o in ads_paid
+        float(o.get("total_amount", 0)) for o in ads_paid
     )
 
     return {

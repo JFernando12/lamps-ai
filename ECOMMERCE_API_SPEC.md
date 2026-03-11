@@ -154,14 +154,14 @@ POST /api/designs
 ```json
 {
   "photo_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/msg_abc.jpg",
-  "product_id": "lamp_led_16",
+  "product_id": "rgb",
   "whatsapp_phone": "5215551234",
   "_session_id": "sess_abc123",
   "_channel_id": "ch_xyz"
 }
 ```
 
-**Valores de `product_id`:** `lamp_led_16` | `lamp_wood`
+**Valores de `product_id`:** `rgb` | `madera`
 
 **Response 202 — Aceptado, procesando:**
 ```json
@@ -301,21 +301,20 @@ Devuelve todos los datos actuales del pedido, incluyendo `missing_fields` (campo
   "order_number": "TDG-2026-0042",
   "status": "apartado",
   "whatsapp_phone": "5215551234",
-  "product_id": "lamp_led_16",
+  "product_id": "rgb",
   "product_name": "Lámpara LED 16 colores",
   "design_job_id": "dsn_abc123",
   "payment_id": "pay_abc123",
   "balance_payment_id": null,
-  "customer_name": "María García López",
-  "street": null,
-  "neighborhood": null,
+  "full_name": "María García López",
+  "address": null,
   "city": null,
   "state": null,
   "zip_code": null,
   "email": null,
-  "custom_text": null,
-  "spotify_ref": null,
-  "missing_fields": ["street", "neighborhood", "city", "state", "zip_code"],
+  "engraving_text": null,
+  "spotify_url": null,
+  "missing_fields": ["address", "city", "state", "zip_code"],
   "ready_to_confirm": false,
   "created_at": "2026-03-10T12:00:00Z",
   "updated_at": "2026-03-10T12:05:00Z"
@@ -340,17 +339,16 @@ Permite ir rellenando los datos del pedido de forma incremental. Solo `order_id`
 ```json
 {
   "order_id": "ord_xyz789",
-  "product_id": "lamp_led_16",
+  "product_id": "rgb",
   "design_job_id": "dsn_abc123",
   "balance_payment_id": "pay_saldo_456",
-  "customer_name": "María García López",
-  "street": "Av. Insurgentes 123 Int 4",
-  "neighborhood": "Del Valle",
+  "full_name": "María García López",
+  "address": "Av. Insurgentes 123 Int 4",
   "city": "Ciudad de México",
   "state": "CDMX",
   "zip_code": "03100",
-  "custom_text": "Para siempre juntos",
-  "spotify_ref": "Ed Sheeran - Perfect",
+  "engraving_text": "Para siempre juntos",
+  "spotify_url": "Ed Sheeran - Perfect",
   "email": "maria@ejemplo.com"
 }
 ```

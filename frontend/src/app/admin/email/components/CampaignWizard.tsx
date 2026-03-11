@@ -12,8 +12,8 @@ const SEGMENT_OPTIONS: { value: SegmentType; label: string }[] = [
   { value: 'all', label: 'Todos' },
   { value: 'customers', label: 'Con pedido' },
   { value: 'abandoned_carts', label: 'Carrito abandonado' },
-  { value: 'payment_failed', label: 'Pago fallido' },
-  { value: 'pending_payment', label: 'Pago pendiente' },
+  { value: 'rejected', label: 'Pago fallido' },
+  { value: 'pending', label: 'Pago pendiente' },
 ];
 
 const PRODUCT_OPTIONS = [

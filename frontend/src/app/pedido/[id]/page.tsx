@@ -21,7 +21,6 @@ import { PRODUCTS } from '@/app/checkout/components/types';
 interface OrderItem {
   product_id: string;
   quantity: number;
-  unit_price?: number;
   photo_id?: string;
   engraving_text?: string;
   spotify_url?: string;
@@ -51,12 +50,12 @@ const STATUS_INFO: Record<
   string,
   { label: string; icon: React.ReactNode; color: string }
 > = {
-  pending_payment: {
+  pending: {
     label: 'Pendiente de pago',
     icon: <Clock size={20} />,
     color: 'text-yellow-400',
   },
-  paid: {
+  approved: {
     label: 'Pago confirmado',
     icon: <CheckCircle2 size={20} />,
     color: 'text-green-400',
@@ -76,7 +75,7 @@ const STATUS_INFO: Record<
     icon: <CheckCircle2 size={20} />,
     color: 'text-green-400',
   },
-  payment_failed: {
+  rejected: {
     label: 'Pago fallido',
     icon: <AlertCircle size={20} />,
     color: 'text-red-400',
@@ -88,7 +87,7 @@ const STATUS_INFO: Record<
   },
 };
 
-const STATUS_STEPS = ['paid', 'in_process', 'shipped', 'delivered'];
+const STATUS_STEPS = ['approved', 'in_process', 'shipped', 'delivered'];
 
 export default function OrderStatusPage() {
   return (
@@ -154,9 +153,7 @@ function OrderStatusContent() {
 
         const orderValue = parseFloat(order.total_amount);
         const orderName =
-          PRODUCTS[order.items[0]?.product_id as keyof typeof PRODUCTS]?.name ??
-          order.items[0]?.product_id ??
-          'Lámpara';
+          PRODUCTS[order.items[0].product_id as keyof typeof PRODUCTS].name;
         if (paymentStatus === 'success' && !hasFiredPurchase.current) {
           hasFiredPurchase.current = true;
           getEvent('Purchase').track({
@@ -197,7 +194,7 @@ function OrderStatusContent() {
       </main>
     );
 
-  const statusInfo = STATUS_INFO[order.status] ?? STATUS_INFO.pending_payment;
+  const statusInfo = STATUS_INFO[order.status] ?? STATUS_INFO.pending;
   const currentStepIndex = STATUS_STEPS.indexOf(order.status);
 
   return (
@@ -212,7 +209,7 @@ function OrderStatusContent() {
             </p>
           </div>
         )}
-        {paymentStatus === 'failure' && order.status !== 'paid' && (
+        {paymentStatus === 'failure' && order.status !== 'approved' && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3">
             <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
             <div>
@@ -232,7 +229,7 @@ function OrderStatusContent() {
             </div>
           </div>
         )}
-        {paymentStatus === 'pending' && order.status !== 'paid' && (
+        {paymentStatus === 'pending' && order.status !== 'approved' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-start gap-3">
             <Clock size={20} className="text-yellow-400 shrink-0 mt-0.5" />
             <div>
@@ -320,9 +317,13 @@ function OrderStatusContent() {
                   </p>
                   <p className="text-white/40 text-sm">
                     ×{item.quantity}
-                    {item.unit_price != null && (
+                    {PRODUCTS[item.product_id as keyof typeof PRODUCTS]
+                      ?.price != null && (
                       <span className="ml-2">
-                        ${item.unit_price * item.quantity} MXN
+                        $
+                        {PRODUCTS[item.product_id as keyof typeof PRODUCTS]!
+                          .price * item.quantity}{' '}
+                        MXN
                       </span>
                     )}
                   </p>
@@ -353,8 +354,7 @@ function OrderStatusContent() {
           </div>
         </div>
 
-        {(order.status === 'pending_payment' ||
-          order.status === 'payment_failed') &&
+        {(order.status === 'pending' || order.status === 'rejected') &&
           order.mp_init_point && (
             <a
               href={order.mp_init_point}

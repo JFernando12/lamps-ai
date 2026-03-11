@@ -3,12 +3,20 @@
 import type { EmailTemplate, SegmentType } from './types';
 import { Users, ShoppingBag, ShoppingCart, AlertCircle, Clock } from 'lucide-react';
 
-const SEGMENT_OPTIONS: { value: SegmentType; label: string; icon: React.ReactNode }[] = [
+const SEGMENT_OPTIONS: {
+  value: SegmentType;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   { value: 'all', label: 'Todos', icon: <Users size={14} /> },
   { value: 'customers', label: 'Con pedido', icon: <ShoppingBag size={14} /> },
-  { value: 'abandoned_carts', label: 'Carrito abandonado', icon: <ShoppingCart size={14} /> },
-  { value: 'payment_failed', label: 'Pago fallido', icon: <AlertCircle size={14} /> },
-  { value: 'pending_payment', label: 'Pago pendiente', icon: <Clock size={14} /> },
+  {
+    value: 'abandoned_carts',
+    label: 'Carrito abandonado',
+    icon: <ShoppingCart size={14} />,
+  },
+  { value: 'rejected', label: 'Pago fallido', icon: <AlertCircle size={14} /> },
+  { value: 'pending', label: 'Pago pendiente', icon: <Clock size={14} /> },
 ];
 
 const PRODUCT_OPTIONS = [

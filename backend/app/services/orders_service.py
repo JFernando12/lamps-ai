@@ -2,7 +2,6 @@
 import logging
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal
 
 import mercadopago
 from fastapi import HTTPException
@@ -12,12 +11,9 @@ from .. import database
 from ..schemas.orders import CreateOrderRequest
 from ..pixel_events import get_event
 
-logger = logging.getLogger(__name__)
+from ..catalog import PRODUCTS
 
-_PRODUCT_CATALOG: dict[str, dict] = {
-    "rgb":    {"name": "L\u00e1mpara acr\u00edlica LED RGB",  "price": 598.0},
-    "madera": {"name": "L\u00e1mpara base de madera", "price": 719.0},
-}
+logger = logging.getLogger(__name__)
 
 
 def _compact(d: dict) -> dict:
@@ -44,6 +40,8 @@ def create_order(
     resolved_email: str | None = user_email or cart.get("email") or None
 
     order_id = str(uuid.uuid4())
+    payment_id = f"pay_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
 
     # 2. Build MercadoPago preference from cart items
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
@@ -51,22 +49,20 @@ def create_order(
 
     mp_items = []
     total_amount = 0.0
-    enriched_items = []
     for ci in cart_items:
-        catalog = _PRODUCT_CATALOG.get(ci.get("product_id", "rgb"), _PRODUCT_CATALOG["rgb"])
+        catalog = PRODUCTS.get(ci.get("product_id", "rgb"), PRODUCTS["rgb"])
         qty = int(ci.get("quantity", 1))
+        total_amount += catalog["unit_price"] * qty
         mp_items.append({
-            "title": catalog["name"],
+            "title": catalog["title"],
             "quantity": qty,
-            "unit_price": catalog["price"],
+            "unit_price": catalog["unit_price"],
             "currency_id": "MXN",
         })
-        total_amount += catalog["price"] * qty
-        enriched_items.append({**ci, "unit_price": Decimal(str(catalog["price"]))})
 
     preference_payload = {
         "items": mp_items,
-        "external_reference": order_id,
+        "external_reference": payment_id,
         "back_urls": {
             "success": f"{config.FRONTEND_URL}/pedido/{order_id}?status=success",
             "failure": f"{config.FRONTEND_URL}/pedido/{order_id}?status=failure",
@@ -90,25 +86,16 @@ def create_order(
     preference = pref_response["response"]
 
     # 3. Persist order
-    total_qty = sum(int(ci.get("quantity", 1)) for ci in cart_items)
-    first_catalog = _PRODUCT_CATALOG.get(cart_items[0].get("product_id", "rgb"), _PRODUCT_CATALOG["rgb"])
-    display_name = first_catalog["name"] if len(cart_items) == 1 else f"{first_catalog['name']} +{len(cart_items)-1} más"
-
     order_item = _compact({
         "order_id": order_id,
         "user_email": resolved_email,
-        "cart_id": body.cart_id,
-        "items": enriched_items,
+        "items": cart_items,
         "total_amount": str(total_amount),
-        "product_name": display_name,
-        "quantity": total_qty,
-        "unit_price": str(total_amount),
         "shipping": body.shipping.model_dump(),
-        "status": "pending_payment",
-        "mp_preference_id": preference["id"],
+        "status": "pending",
         "mp_init_point": preference["init_point"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now,
+        "updated_at": now,
         # Attribution — pulled from cart so the frontend doesn't re-send it
         "utm_source": cart.get("utm_source"),
         "utm_medium": cart.get("utm_medium"),
@@ -122,36 +109,30 @@ def create_order(
     })
     database.orders_table().put_item(Item=order_item)
 
-    # 4. Link each photo → order
-    for ci in cart_items:
-        if ci.get("photo_id"):
-            database.photos_table().update_item(
-                Key={"photo_id": ci["photo_id"]},
-                UpdateExpression="SET order_id = :oid",
-                ExpressionAttributeValues={":oid": order_id},
-            )
+    # 4. Persist payment record (same structure as WA payments)
+    concept = PRODUCTS[cart_items[0].get("product_id", "rgb")]["title"]
+    database.payments_table().put_item(Item={
+        "payment_id": payment_id,
+        "method": "mercadopago",
+        "mp_preference_id": preference["id"],
+        "order_id": order_id,
+        "amount": str(total_amount),
+        "concept": concept,
+        "status": "pending",
+        "created_at": now,
+    })
 
-    # 5. Convert cart (non-critical)
+    # 5. Delete cart — it has been converted to an order, no longer needed
     try:
-        database.carts_table().update_item(
-            Key={"cart_id": body.cart_id},
-            UpdateExpression="SET #s = :s, converted_at = :ca",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={
-                ":s": "converted",
-                ":ca": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+        database.carts_table().delete_item(Key={"cart_id": body.cart_id})
     except Exception as exc:
-        logger.warning("convert_cart failed: %s", exc)
+        logger.warning("delete_cart failed: %s", exc)
 
     # 6. Fire CAPI
-    total_qty = sum(int(ci.get("quantity", 1)) for ci in cart_items)
     get_event("InitiateCheckout").send({
         "order_id": order_id,
         "user_email": resolved_email,
-        "unit_price": total_amount,
-        "quantity": total_qty,
+        "total_amount": total_amount,
         "checkout_event_id": body.checkout_event_id,
         "client_ip": client_ip,
         "user_agent": user_agent,
@@ -163,7 +144,6 @@ def create_order(
         "order_id": order_id,
         "mp_init_point": preference["init_point"],
         "mp_sandbox_init_point": preference.get("sandbox_init_point", preference["init_point"]),
-        "mp_preference_id": preference["id"],
     }
 
 
@@ -187,36 +167,40 @@ def get_order(order_id: str, user_email: str | None, is_admin: bool = False) -> 
     return item
 
 
-def sync_payment(order_id: str, payment_id: str, user_email: str | None) -> dict:
+def sync_payment(order_id: str, mp_payment_id: str, user_email: str | None) -> dict:
     """Manually fetch payment status from MP and update the order (used on redirect back)."""
     item = database.orders_table().get_item(Key={"order_id": order_id}).get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Order not found")
-    # Allow sync if anonymous (UUID is unguessable) or email matches
     if user_email is not None and item.get("user_email") != user_email:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
-    payment = sdk.payment().get(payment_id)["response"]
+    payment = sdk.payment().get(mp_payment_id)["response"]
     mp_status = payment.get("status")
+    new_status = mp_status if mp_status in ("approved", "rejected") else "pending"
+    now = datetime.now(timezone.utc).isoformat()
 
-    new_status = {
-        "approved": "paid",
-        "rejected": "payment_failed",
-        "pending": "pending_payment",
-        "in_process": "pending_payment",
-    }.get(mp_status, "pending_payment")
+    # Update payment record in payments_table
+    payments = database.payments_table().query(
+        IndexName="order_id-index",
+        KeyConditionExpression="order_id = :ref",
+        ExpressionAttributeValues={":ref": order_id},
+    ).get("Items", [])
+    if payments:
+        database.payments_table().update_item(
+            Key={"payment_id": payments[0]["payment_id"]},
+            UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":s": new_status, ":pid": str(mp_payment_id), ":u": now},
+        )
 
     table = database.orders_table()
     table.update_item(
         Key={"order_id": order_id},
-        UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
+        UpdateExpression="SET #s = :s, updated_at = :u",
         ExpressionAttributeNames={"#s": "status"},
-        ExpressionAttributeValues={
-            ":s": new_status,
-            ":pid": str(payment_id),
-            ":u": datetime.now(timezone.utc).isoformat(),
-        },
+        ExpressionAttributeValues={":s": new_status, ":u": now},
     )
 
     updated = table.get_item(Key={"order_id": order_id}).get("Item", {})
@@ -231,39 +215,42 @@ def process_mp_webhook(data: dict) -> dict:
     if data.get("type") != "payment":
         return {"ok": True}
 
-    payment_id = data.get("data", {}).get("id")
-    if not payment_id:
+    mp_payment_id = (data.get("data") or {}).get("id")
+    if not mp_payment_id:
         return {"ok": True}
 
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
-    payment = sdk.payment().get(payment_id)["response"]
-    order_id = payment.get("external_reference")
+    payment = sdk.payment().get(mp_payment_id)["response"]
+    our_payment_id = payment.get("external_reference")  # our internal pay_xxx
     mp_status = payment.get("status")
 
-    if not order_id:
+    if not our_payment_id:
         return {"ok": True}
 
-    new_status = {
-        "approved": "paid",
-        "rejected": "payment_failed",
-        "pending": "pending_payment",
-        "in_process": "pending_payment",
-    }.get(mp_status, "pending_payment")
+    payment_item = database.payments_table().get_item(Key={"payment_id": our_payment_id}).get("Item")
+    if not payment_item:
+        return {"ok": True}
 
-    table = database.orders_table()
-    table.update_item(
-        Key={"order_id": order_id},
+    order_id = payment_item["order_id"]
+    new_status = mp_status if mp_status in ("approved", "rejected") else "pending"
+    now = datetime.now(timezone.utc).isoformat()
+
+    database.payments_table().update_item(
+        Key={"payment_id": our_payment_id},
         UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
         ExpressionAttributeNames={"#s": "status"},
-        ExpressionAttributeValues={
-            ":s": new_status,
-            ":pid": str(payment_id),
-            ":u": datetime.now(timezone.utc).isoformat(),
-        },
+        ExpressionAttributeValues={":s": new_status, ":pid": str(mp_payment_id), ":u": now},
+    )
+
+    database.orders_table().update_item(
+        Key={"order_id": order_id},
+        UpdateExpression="SET #s = :s, updated_at = :u",
+        ExpressionAttributeNames={"#s": "status"},
+        ExpressionAttributeValues={":s": new_status, ":u": now},
     )
 
     if mp_status == "approved":
-        order = table.get_item(Key={"order_id": order_id}).get("Item", {})
+        order = database.orders_table().get_item(Key={"order_id": order_id}).get("Item", {})
         get_event("Purchase").send(order)
 
     return {"ok": True}

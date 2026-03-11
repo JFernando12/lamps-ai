@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, LogOut, Zap, BarChart3, Mail } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  LayoutDashboard,
+  LogOut,
+  Zap,
+  BarChart3,
+  Mail,
+  ArrowLeftRight,
+} from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function AdminLayout({
   children,
@@ -13,6 +22,7 @@ export default function AdminLayout({
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [pendingTransfers, setPendingTransfers] = useState(0);
 
   const handleLogout = () => {
     logout();
@@ -20,6 +30,16 @@ export default function AdminLayout({
   };
 
   const isLoginPage = pathname === '/admin/login';
+
+  useEffect(() => {
+    if (!user?.is_admin || isLoginPage) return;
+    api
+      .get<{ transfers: { payment_id: string }[] }>(
+        '/api/admin/payments/pending-transfers',
+      )
+      .then((d) => setPendingTransfers(d.transfers?.length ?? 0))
+      .catch(() => {});
+  }, [user, isLoginPage]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
@@ -44,6 +64,22 @@ export default function AdminLayout({
             >
               <LayoutDashboard size={15} />
               Pedidos
+            </Link>
+            <Link
+              href="/admin/transferencias"
+              className={`relative flex items-center gap-1.5 transition-colors ${
+                pathname.startsWith('/admin/transferencias')
+                  ? 'text-amber-400'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              <ArrowLeftRight size={15} />
+              Transferencias
+              {pendingTransfers > 0 && (
+                <span className="absolute -top-1.5 -right-3 min-w-4 h-4 bg-amber-400 text-black text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                  {pendingTransfers}
+                </span>
+              )}
             </Link>
             <Link
               href="/admin/ads"

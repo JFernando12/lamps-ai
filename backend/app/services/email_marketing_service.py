@@ -18,7 +18,7 @@ from ..services.admin_service import _scan_all
 
 # ── Types ─────────────────────────────────────────────────────────────────────
 
-SegmentType = Literal["all", "customers", "abandoned_carts", "payment_failed", "pending_payment"]
+SegmentType = Literal["all", "customers", "abandoned_carts", "rejected", "pending"]
 
 TEMPLATES: list[dict] = [
     {
@@ -153,7 +153,7 @@ def _get_audience(segment: SegmentType, product_filter: str | None = None) -> li
                 "status": "abandoned",
             }
 
-    if segment in ("payment_failed", "pending_payment"):
+    if segment in ("rejected", "pending"):
         orders = _scan_all(database.orders_table())
         for o in orders:
             if o.get("status") != segment:
