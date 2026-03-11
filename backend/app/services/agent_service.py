@@ -700,7 +700,7 @@ def _post_callback(url: str, payload: dict) -> None:
 def _expiration_iso(hours: int) -> str:
     from datetime import timedelta
     dt = datetime.now(timezone.utc) + timedelta(hours=hours)
-    return dt.isoformat().replace("+00:00", ".000Z")
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def _map_mp_status(mp_status: str) -> str:
