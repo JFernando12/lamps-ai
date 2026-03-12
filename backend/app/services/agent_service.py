@@ -815,7 +815,7 @@ def _run_design_job(
             # 4. Subir a S3
             s3_key = f"designs/{design_id}.png"
             s3_helper.upload_bytes(image_bytes, s3_key, content_type="image/png")
-            design_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+            design_url = s3_helper.get_presigned_url(s3_key, expires_in=86400)  # 24 h
 
             # 5. Marcar como listo
             database.designs_table().update_item(
