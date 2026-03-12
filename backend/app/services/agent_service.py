@@ -691,7 +691,15 @@ def get_orders_by_phone(phone: str) -> dict:
         KeyConditionExpression="whatsapp_phone = :p",
         ExpressionAttributeValues={":p": phone},
     )
-    return {"orders": [_serialize_order(o) for o in resp.get("Items", [])]}
+    orders = []
+    for o in resp.get("Items", []):
+        order_id = o.get("order_id")
+        if order_id:
+            try:
+                orders.append(get_order(order_id))
+            except Exception:
+                pass
+    return {"orders": orders}
 
 
 def get_orders_by_email(email: str) -> dict:
@@ -700,7 +708,15 @@ def get_orders_by_email(email: str) -> dict:
         KeyConditionExpression="user_email = :e",
         ExpressionAttributeValues={":e": email},
     )
-    return {"orders": [_serialize_order(o) for o in resp.get("Items", [])]}
+    orders = []
+    for o in resp.get("Items", []):
+        order_id = o.get("order_id")
+        if order_id:
+            try:
+                orders.append(get_order(order_id))
+            except Exception:
+                pass
+    return {"orders": orders}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
