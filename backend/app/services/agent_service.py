@@ -54,6 +54,7 @@ def _generate_unique_order_id() -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
+    print(f"[agent_service] create_payment_link: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body._channel_id} session_id={body._session_id}")
     if body.amount < 10:
         raise HTTPException(status_code=422, detail={"error": "invalid_amount", "message": "El monto mínimo es $10 MXN"})
 
@@ -67,6 +68,7 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
             f"{config.AI_PLATFORM_BASE_URL}/whatsapp/webhooks/async"
             f"/{body._channel_id}/{body._session_id}"
         )
+    print(f"[agent_service] create_payment_link: callback_url={callback_url}")
 
     payload = {
         "items": [
@@ -85,6 +87,7 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
     payload["external_reference"] = payment_id
 
     resp = sdk.preference().create(payload)
+    print(f"[agent_service] create_payment_link: MP preference response status={resp['status']}")
     if resp["status"] not in (200, 201):
         logger.error("MP create_preference error: %s", resp)
         raise HTTPException(status_code=502, detail="Error al crear preferencia de pago")
@@ -108,6 +111,7 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
     # MP provides different URLs for sandbox vs production
     is_sandbox = "sandbox" in config.MP_ACCESS_TOKEN.lower() or config.MP_ACCESS_TOKEN.startswith("TEST-")
     payment_url = pref.get("sandbox_init_point" if is_sandbox else "init_point")
+    print(f"[agent_service] create_payment_link: payment_id={payment_id} is_sandbox={is_sandbox} url={payment_url}")
 
     return {
         "payment_id": payment_id,
@@ -158,11 +162,14 @@ def get_payment_status(payment_id: str) -> dict:
 
 def process_mp_webhook_agent(data: dict) -> dict:
     """MP IPN webhook that updates agent_payments table."""
+    print(f"[agent_service] process_mp_webhook_agent: data={data}")
     if data.get("type") != "payment":
+        print(f"[agent_service] process_mp_webhook_agent: skipping type={data.get('type')}")
         return {"ok": True}
 
     payment_mp_id = (data.get("data") or {}).get("id")
     if not payment_mp_id:
+        print("[agent_service] process_mp_webhook_agent: missing payment id in data")
         return {"ok": True}
 
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
@@ -170,15 +177,19 @@ def process_mp_webhook_agent(data: dict) -> dict:
     # external_reference is our payment_id — direct 1-to-1 lookup, no ambiguity
     our_payment_id = payment.get("external_reference")
     mp_status = payment.get("status")
+    print(f"[agent_service] process_mp_webhook_agent: mp_payment_id={payment_mp_id} our_payment_id={our_payment_id} mp_status={mp_status}")
 
     if not our_payment_id:
+        print("[agent_service] process_mp_webhook_agent: no external_reference in MP payment")
         return {"ok": True}
 
     item = database.payments_table().get_item(Key={"payment_id": our_payment_id}).get("Item")
     if not item:
+        print(f"[agent_service] process_mp_webhook_agent: payment {our_payment_id} not found in DB")
         return {"ok": True}
 
     new_status = _map_mp_status(mp_status)
+    print(f"[agent_service] process_mp_webhook_agent: updating payment {our_payment_id} -> {new_status} callback_url={item.get('callback_url')}")
     database.payments_table().update_item(
         Key={"payment_id": our_payment_id},
         UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
@@ -191,11 +202,14 @@ def process_mp_webhook_agent(data: dict) -> dict:
     )
     if new_status == "approved" and item.get("callback_url"):
         _notify_platform_payment_approved(our_payment_id, item["callback_url"])
+    elif new_status == "approved" and not item.get("callback_url"):
+        print(f"[agent_service] process_mp_webhook_agent: payment approved but NO callback_url stored for {our_payment_id}")
 
     return {"ok": True}
 
 
 def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
+    print(f"[agent_service] create_transfer_payment: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body._channel_id} session_id={body._session_id}")
     if body.amount < 10:
         raise HTTPException(status_code=422, detail={"error": "invalid_amount", "message": "El monto mínimo es $10 MXN"})
 
@@ -208,6 +222,7 @@ def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
             f"{config.AI_PLATFORM_BASE_URL}/whatsapp/webhooks/async"
             f"/{body._channel_id}/{body._session_id}"
         )
+    print(f"[agent_service] create_transfer_payment: payment_id={payment_id} callback_url={callback_url}")
 
     database.payments_table().put_item(Item=_compact({
         "payment_id": payment_id,
@@ -231,6 +246,7 @@ def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
 
 def review_transfer_payment(payment_id: str, approved: bool, note: str | None = None) -> dict:
     """Admin action: approve or reject a pending transfer."""
+    print(f"[agent_service] review_transfer_payment: payment_id={payment_id} approved={approved}")
     item = database.payments_table().get_item(Key={"payment_id": payment_id}).get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
@@ -252,8 +268,11 @@ def review_transfer_payment(payment_id: str, approved: bool, note: str | None = 
         },
     )
 
+    print(f"[agent_service] review_transfer_payment: new_status={new_status} callback_url={item.get('callback_url')}")
     if approved and item.get("callback_url"):
         _notify_platform_payment_approved(payment_id, item["callback_url"])
+    elif approved and not item.get("callback_url"):
+        print(f"[agent_service] review_transfer_payment: approved but NO callback_url for {payment_id}")
 
     return {"payment_id": payment_id, "status": new_status}
 
@@ -806,8 +825,10 @@ def _run_design_job(
 
 
 def _notify_platform_payment_approved(payment_id: str, callback_url: str) -> None:
+    print(f"[agent_service] _notify_platform_payment_approved: payment_id={payment_id} url={callback_url}")
     payload = {
-        "status": "approved",
+        "status": "ready",
+        "message_to_client": "✅ ¡Pago confirmado! Tu pago ha sido procesado exitosamente.",
         "context_for_agent": {
             "payment_id": payment_id,
             "payment_status": "approved",
@@ -846,6 +867,7 @@ def _notify_platform_design_failed(callback_url: str) -> None:
 
 
 def _post_callback(url: str, payload: dict) -> None:
+    print(f"[agent_service] _post_callback: POST {url} payload={payload}")
     try:
         with httpx.Client(timeout=15) as client:
             r = client.post(
@@ -853,8 +875,10 @@ def _post_callback(url: str, payload: dict) -> None:
                 json=payload,
                 headers={"X-Webhook-Secret": config.AGENT_WEBHOOK_SECRET},
             )
+            print(f"[agent_service] _post_callback: response status={r.status_code} body={r.text[:300]}")
             r.raise_for_status()
     except Exception as exc:  # noqa: BLE001
+        print(f"[agent_service] _post_callback: FAILED url={url} error={exc}")
         logger.error("Callback to platform failed (%s): %s", url, exc)
 
 
