@@ -794,7 +794,7 @@ def _run_design_job(
             model="gpt-image-1.5",
             image=images_arg if len(images_arg) > 1 else images_arg[0],
             prompt=base_prompt,
-            quality="high",
+            # quality="high",
             size="1024x1024",
         )
         image_bytes = base64.b64decode(response.data[0].b64_json)
