@@ -747,78 +747,98 @@ def _run_design_job(
             return resp.content
 
     try:
-        # 1. Download the original photo
-        photo_bytes = _fetch_image(photo_url)
+        # 1. Descargar la(s) imagen(es) y guardarlas como archivos temporales
+        import tempfile
+        import os
 
-        # Download previous design if this is a revision
-        prev_design_bytes: Optional[bytes] = None
-        if previous_design_url:
-            prev_design_bytes = _fetch_image(previous_design_url)
+        temp_files = []
+        try:
+            # Foto principal
+            photo_bytes = _fetch_image(photo_url)
+            temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            temp_photo.write(photo_bytes)
+            temp_photo.flush()
+            temp_files.append(temp_photo.name)
 
-        # 2. Build prompt — accumulate all revision notes for full context
-        base_prompt = (
-            "Convert this photo into a clean black and white line art drawing suitable for laser cutting. "
-            "IMPORTANT: ignore the background completely — only draw the people in the foreground. "
-            "Use only thin black lines on a pure white background — no fills, no shading, no gray tones. "
-            "Trace the exact outer silhouette and internal details. "
-            "For faces: clean jaw outline, elegant almond-shaped eyes, minimal nose, clean lip contour. "
-            "DO NOT draw wrinkles, expression lines or skin texture. "
-            "The result must look elegant and attractive. White background, black lines only."
-        )
+            # Si hay diseño previo, también lo guardamos
+            if previous_design_url:
+                prev_design_bytes = _fetch_image(previous_design_url)
+                temp_prev = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                temp_prev.write(prev_design_bytes)
+                temp_prev.flush()
+                temp_files.append(temp_prev.name)
 
-        if revision_history or change_notes:
-            history_notes = [
-                e["change_notes"] for e in (revision_history or []) if e.get("change_notes")
-            ]
-            if change_notes:
-                history_notes.append(change_notes)
-            accumulated = "\n".join(f"- {n}" for n in history_notes)
+            # 2. Construir el prompt
             base_prompt = (
-                f"{base_prompt}\n\n"
-                f"This is a revision. Apply ALL of the following change requests cumulatively:\n"
-                f"{accumulated}"
+                "Convert this photo into a clean black and white line art drawing suitable for laser cutting. "
+                "IMPORTANT: ignore the background completely — only draw the people in the foreground. "
+                "Use only thin black lines on a pure white background — no fills, no shading, no gray tones. "
+                "Trace the exact outer silhouette and internal details. "
+                "For faces: clean jaw outline, elegant almond-shaped eyes, minimal nose, clean lip contour. "
+                "DO NOT draw wrinkles, expression lines or skin texture. "
+                "The result must look elegant and attractive. White background, black lines only."
             )
-            if prev_design_bytes:
+
+            if revision_history or change_notes:
+                history_notes = [
+                    e["change_notes"] for e in (revision_history or []) if e.get("change_notes")
+                ]
+                if change_notes:
+                    history_notes.append(change_notes)
+                accumulated = "\n".join(f"- {n}" for n in history_notes)
                 base_prompt = (
                     f"{base_prompt}\n\n"
-                    "The second image provided is the PREVIOUS version of the design. "
-                    "Use it as reference to understand what has already been done and apply only the requested corrections."
+                    f"This is a revision. Apply ALL of the following change requests cumulatively:\n"
+                    f"{accumulated}"
                 )
+                if previous_design_url:
+                    base_prompt = (
+                        f"{base_prompt}\n\n"
+                        "The second image provided is the PREVIOUS version of the design. "
+                        "Use it as reference to understand what has already been done and apply only the requested corrections."
+                    )
 
-        # 3. Call OpenAI — pass previous design as second image when available
-        ai_client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
-        images_arg: list = [io.BytesIO(photo_bytes)]
-        if prev_design_bytes:
-            images_arg.append(io.BytesIO(prev_design_bytes))
-        response = ai_client.images.edit(
-            model="gpt-image-1",
-            image=images_arg if len(images_arg) > 1 else images_arg[0],
-            prompt=base_prompt,
-            # quality="high",
-            size="1024x1024",
-        )
-        image_bytes = base64.b64decode(response.data[0].b64_json)
+            # 3. Llamar a OpenAI usando archivos abiertos como en la documentación
+            ai_client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+            image_files = [open(f, "rb") for f in temp_files]
+            response = ai_client.images.edit(
+                model="gpt-image-1",
+                image=image_files if len(image_files) > 1 else image_files[0],
+                prompt=base_prompt,
+                size="1024x1024",
+            )
+            for f in image_files:
+                f.close()
 
-        # 4. Upload to S3
-        s3_key = f"designs/{design_id}.png"
-        s3_helper.upload_bytes(image_bytes, s3_key, content_type="image/png")
-        design_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+            image_bytes = base64.b64decode(response.data[0].b64_json)
 
-        # 5. Mark as ready
-        database.designs_table().update_item(
-            Key={"design_id": design_id},
-            UpdateExpression="SET #s = :s, design_url = :u, updated_at = :t",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={
-                ":s": "ready",
-                ":u": design_url,
-                ":t": datetime.now(timezone.utc).isoformat(),
-            },
-        )
+            # 4. Subir a S3
+            s3_key = f"designs/{design_id}.png"
+            s3_helper.upload_bytes(image_bytes, s3_key, content_type="image/png")
+            design_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
 
-        # 6. Notify platform via callback
-        if callback_url:
-            _notify_platform_design_ready(design_id, design_url, callback_url)
+            # 5. Marcar como listo
+            database.designs_table().update_item(
+                Key={"design_id": design_id},
+                UpdateExpression="SET #s = :s, design_url = :u, updated_at = :t",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={
+                    ":s": "ready",
+                    ":u": design_url,
+                    ":t": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+            # 6. Notificar por callback
+            if callback_url:
+                _notify_platform_design_ready(design_id, design_url, callback_url)
+        finally:
+            # Limpiar archivos temporales
+            for f in temp_files:
+                try:
+                    os.unlink(f)
+                except Exception:
+                    pass
 
     except Exception as exc:  # noqa: BLE001
         logger.error("Design job %s failed: %s", design_id, exc)
