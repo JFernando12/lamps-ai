@@ -815,7 +815,10 @@ def _run_design_job(
             # 4. Subir a S3
             s3_key = f"designs/{design_id}.png"
             s3_helper.upload_bytes(image_bytes, s3_key, content_type="image/png")
-            design_url = s3_helper.get_presigned_url(s3_key, expires_in=86400)  # 24 h
+            # Permanent URL stored in DB (used for internal S3 access on revisions)
+            design_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+            # Presigned URL for WhatsApp (Meta needs to download the image)
+            design_url_wa = s3_helper.get_presigned_url(s3_key, expires_in=86400)  # 24 h
 
             # 5. Marcar como listo
             database.designs_table().update_item(
@@ -831,7 +834,7 @@ def _run_design_job(
 
             # 6. Notificar por callback
             if callback_url:
-                _notify_platform_design_ready(design_id, design_url, callback_url)
+                _notify_platform_design_ready(design_id, design_url_wa, callback_url)
         finally:
             # Limpiar archivos temporales
             for f in temp_files:
