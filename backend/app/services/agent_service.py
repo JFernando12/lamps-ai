@@ -735,19 +735,25 @@ def _run_design_job(
 ) -> None:
     """Download photo, call OpenAI gpt-image-1 edit, upload result, notify platform."""
 
+    def _fetch_image(url: str) -> bytes:
+        """Download image bytes from S3 (private) or any public URL."""
+        m = re.match(r"https://([^.]+)\.s3(?:\.[^/]+)?\.amazonaws\.com/(.+)", url)
+        if m:
+            data, _ = s3_helper.download_bytes(m.group(2), bucket=m.group(1))
+            return data
+        with httpx.Client(timeout=30) as client:
+            resp = client.get(url)
+            resp.raise_for_status()
+            return resp.content
+
     try:
         # 1. Download the original photo
-        with httpx.Client(timeout=30) as client:
-            photo_resp = client.get(photo_url)
-            photo_resp.raise_for_status()
-            photo_bytes = photo_resp.content
+        photo_bytes = _fetch_image(photo_url)
 
-            # Download previous design if this is a revision
-            prev_design_bytes: Optional[bytes] = None
-            if previous_design_url:
-                prev_resp = client.get(previous_design_url)
-                prev_resp.raise_for_status()
-                prev_design_bytes = prev_resp.content
+        # Download previous design if this is a revision
+        prev_design_bytes: Optional[bytes] = None
+        if previous_design_url:
+            prev_design_bytes = _fetch_image(previous_design_url)
 
         # 2. Build prompt — accumulate all revision notes for full context
         base_prompt = (
