@@ -2,6 +2,7 @@
 import base64
 import io
 import logging
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -321,11 +322,17 @@ def create_design(body: CreateDesignRequest) -> dict:
         )
 
     # Download the WhatsApp photo and upload to S3 to get a permanent photo_id.
-    with httpx.Client(timeout=30) as client:
-        photo_resp = client.get(body.photo_url)
-        photo_resp.raise_for_status()
-        photo_bytes = photo_resp.content
-        photo_content_type = photo_resp.headers.get("content-type", "image/jpeg").split(";")[0]
+    # If the URL is a private S3 object, use boto3 to avoid 403 errors.
+    _s3_match = re.match(r"https://([^.]+)\.s3(?:\.[^/]+)?\.amazonaws\.com/(.+)", body.photo_url)
+    if _s3_match:
+        _s3_bucket, _s3_key = _s3_match.group(1), _s3_match.group(2)
+        photo_bytes, photo_content_type = s3_helper.download_bytes(_s3_key, bucket=_s3_bucket)
+    else:
+        with httpx.Client(timeout=30) as client:
+            photo_resp = client.get(body.photo_url)
+            photo_resp.raise_for_status()
+            photo_bytes = photo_resp.content
+            photo_content_type = photo_resp.headers.get("content-type", "image/jpeg").split(";")[0]
 
     photo_id = str(uuid.uuid4())
     ext = photo_content_type.split("/")[-1]

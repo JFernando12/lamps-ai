@@ -30,6 +30,12 @@ def get_presigned_url(key: str, expires_in: int = 3600) -> str:
     )
 
 
+def download_bytes(key: str, bucket: str = config.S3_BUCKET) -> tuple[bytes, str]:
+    """Download an S3 object and return (bytes, content_type)."""
+    resp = _s3.get_object(Bucket=bucket, Key=key)
+    return resp["Body"].read(), resp.get("ContentType", "image/jpeg")
+
+
 def delete_object(key: str) -> None:
     """Delete an object from S3, ignoring errors if it doesn't exist."""
     try:
