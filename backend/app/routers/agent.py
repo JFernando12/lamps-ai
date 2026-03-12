@@ -33,11 +33,6 @@ def create_transfer_payment(body: CreateTransferPaymentRequest):
     return agent_service.create_transfer_payment(body)
 
 
-@router.get("/payments")
-def get_payment_status(payment_id: str):
-    return agent_service.get_payment_status(payment_id)
-
-
 @router.post("/payments/webhook/mp")
 async def mp_webhook_agent(data: dict):
     """MercadoPago IPN webhook for agent-created payments."""
@@ -49,11 +44,6 @@ async def mp_webhook_agent(data: dict):
 @router.post("/designs", status_code=202)
 def create_design(body: CreateDesignRequest):
     return agent_service.create_design(body)
-
-
-@router.get("/designs")
-def get_design_status(design_id: str):
-    return agent_service.get_design_status(design_id)
 
 
 @router.post("/designs/approve")
@@ -71,11 +61,6 @@ def request_revision(body: RevisionDesignRequest):
 @router.post("/orders", status_code=201)
 def create_agent_order(body: CreateAgentOrderRequest):
     return agent_service.create_agent_order(body)
-
-
-@router.get("/orders")
-def get_order(order_id: str):
-    return agent_service.get_order(order_id)
 
 
 @router.patch("/orders")

@@ -379,24 +379,16 @@ def create_design(body: CreateDesignRequest) -> dict:
         "updated_at": now,
     }))
 
+    # Vincular design_id a la orden de inmediato para que el chatbot lo vea como "processing"
+    database.orders_table().update_item(
+        Key={"order_id": body.order_id},
+        UpdateExpression="SET design_id = :d, updated_at = :u",
+        ExpressionAttributeValues={":d": design_id, ":u": now},
+    )
+
     _trigger_design_job(design_id, s3_photo_url, callback_url)
 
     return {"design_id": design_id, "estimated_seconds": 30}
-
-
-def get_design_status(design_id: str) -> dict:
-    item = database.designs_table().get_item(Key={"design_id": design_id}).get("Item")
-    if not item:
-        raise HTTPException(status_code=404, detail="Diseño no encontrado")
-    return {
-        "design_id": design_id,
-        "status": item.get("status"),
-        "design_url": item.get("design_url"),
-        "iteration": int(item.get("iteration", 1)),
-        "change_notes": item.get("change_notes"),
-        "revision_history": item.get("revision_history", []),
-        "error_message": item.get("error_message"),
-    }
 
 
 def approve_design(design_id: str) -> dict:
@@ -515,13 +507,25 @@ def get_order(order_id: str) -> dict:
     full_price = product_info["unit_price"]
     approved_total = sum(float(p.get("amount", 0)) for p in order_payments if p.get("status") == "approved")
 
+    design = None
+    if item.get("design_id"):
+        design_item = database.designs_table().get_item(Key={"design_id": item["design_id"]}).get("Item")
+        design = {
+            "design_id": item["design_id"],
+            "status": design_item.get("status") if design_item else None,
+            "design_url": design_item.get("design_url") if design_item else None,
+            "iteration": int(design_item.get("iteration", 1)) if design_item else None,
+            "approved": design_item.get("approved", False) if design_item else None,
+            "error_message": design_item.get("error_message") if design_item else None,
+        }
+
     return {
         "order_id": item["order_id"],
         "status": item.get("status"),
         "whatsapp_phone": item.get("whatsapp_phone"),
         "product_id": product_id,
         "product_name": product_info["title"],
-        "design_id": item.get("design_id"),
+        "design": design,
         "payments": [
             {
                 "payment_id": p["payment_id"],
@@ -786,13 +790,17 @@ def _run_design_job(
 
             # 2. Construir el prompt
             base_prompt = (
-                "Convert this photo into a clean black and white line art drawing suitable for laser cutting. "
+                "Convert this photo into a clean black and white line art drawing. "
                 "IMPORTANT: ignore the background completely — only draw the people in the foreground. "
                 "Use only thin black lines on a pure white background — no fills, no shading, no gray tones. "
-                "Trace the exact outer silhouette and internal details. "
-                "For faces: clean jaw outline, elegant almond-shaped eyes, minimal nose, clean lip contour. "
-                "DO NOT draw wrinkles, expression lines or skin texture. "
-                "The result must look elegant and attractive. White background, black lines only."
+                "Trace the exact outer silhouette of the people: every curve of the hair, face, shoulders, arms and body. "
+                "For the faces, draw ONLY the essential defining lines: clean jaw and face outline, elegant almond-shaped eyes, "
+                "minimal nose (just the tip and nostrils), clean lip contour. "
+                "DO NOT draw wrinkles, expression lines, laugh lines, crow's feet, forehead lines, skin texture or any aging marks. "
+                "The face must look smooth, youthful and flattering — like a skilled portrait illustrator who idealized the subject slightly. "
+                "Hair: flowing detailed strokes following the hair direction. "
+                "Body: clean clothing edges and silhouette lines. "
+                "The result must look elegant and attractive. White background, black lines only, no background elements."
             )
 
             if revision_history or change_notes:
