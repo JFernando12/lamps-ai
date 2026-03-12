@@ -791,7 +791,7 @@ def _run_design_job(
         if prev_design_bytes:
             images_arg.append(io.BytesIO(prev_design_bytes))
         response = ai_client.images.edit(
-            model="gpt-image-1.5",
+            model="gpt-image-1",
             image=images_arg if len(images_arg) > 1 else images_arg[0],
             prompt=base_prompt,
             # quality="high",
