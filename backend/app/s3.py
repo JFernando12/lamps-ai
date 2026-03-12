@@ -28,3 +28,11 @@ def get_presigned_url(key: str, expires_in: int = 3600) -> str:
         Params={"Bucket": config.S3_BUCKET, "Key": key},
         ExpiresIn=expires_in,
     )
+
+
+def delete_object(key: str) -> None:
+    """Delete an object from S3, ignoring errors if it doesn't exist."""
+    try:
+        _s3.delete_object(Bucket=config.S3_BUCKET, Key=key)
+    except Exception:
+        pass

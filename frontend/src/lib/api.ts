@@ -31,6 +31,7 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 
   /** Upload photo only — no AI, returns photo_id for use in checkout */
   uploadPhoto: async (file: File): Promise<{ photo_id: string }> => {

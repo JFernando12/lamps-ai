@@ -121,6 +121,44 @@ def update_order_status(order_id: str, body: UpdateOrderStatusRequest) -> dict:
     return {"ok": True, "order_id": order_id, "new_status": body.status}
 
 
+def delete_order(order_id: str) -> dict:
+    orders = database.orders_table()
+    item = orders.get_item(Key={"order_id": order_id}).get("Item")
+    if not item:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # 1. Delete linked payments
+    payments = database.payments_table()
+    pay_resp = payments.query(
+        IndexName="order_id-index",
+        KeyConditionExpression="order_id = :ref",
+        ExpressionAttributeValues={":ref": order_id},
+    )
+    for p in pay_resp.get("Items", []):
+        payments.delete_item(Key={"payment_id": p["payment_id"]})
+
+    # 2. Delete linked design (whatsapp orders)
+    design_id = item.get("design_id")
+    if design_id:
+        database.designs_table().delete_item(Key={"design_id": design_id})
+
+    # 3. Delete linked photo + S3 object (checkout orders)
+    photo_id = (item.get("items") or [{}])[0].get("photo_id") if item.get("items") else None
+    if not photo_id:
+        photo_id = item.get("photo_id")
+    if photo_id:
+        photo_item = database.photos_table().get_item(Key={"photo_id": photo_id}).get("Item")
+        if photo_item:
+            s3_key = photo_item.get("s3_key")
+            if s3_key:
+                s3_helper.delete_object(s3_key)
+            database.photos_table().delete_item(Key={"photo_id": photo_id})
+
+    # 4. Delete the order itself
+    orders.delete_item(Key={"order_id": order_id})
+    return {"ok": True, "order_id": order_id}
+
+
 def get_stats() -> dict:
     from ..catalog import PRODUCTS
 

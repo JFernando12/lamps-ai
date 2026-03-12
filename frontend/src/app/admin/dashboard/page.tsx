@@ -48,6 +48,18 @@ export default function AdminDashboard() {
     load();
   }, [user, authLoading, router]);
 
+  const deleteOrder = async (orderId: string) => {
+    if (!confirm('¿Eliminar este pedido? Esta acción no se puede deshacer.'))
+      return;
+    try {
+      await api.delete(`/api/admin/orders/${orderId}`);
+      setOrders((prev) => prev.filter((o) => o.order_id !== orderId));
+    } catch (e) {
+      console.error(e);
+      alert('Error al eliminar el pedido.');
+    }
+  };
+
   const updateStatus = async (
     orderId: string,
     newStatus: string,
@@ -92,13 +104,13 @@ export default function AdminDashboard() {
 
   if (authLoading || loading)
     return (
-      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center pt-14">
+      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center pt-6">
         <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
       </main>
     );
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white pt-20 pb-16 px-4">
+    <main className="min-h-screen bg-[#0a0a0a] text-white pt-6 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -147,6 +159,7 @@ export default function AdminDashboard() {
               onStatusChange={(newStatus, tracking) =>
                 updateStatus(order.order_id, newStatus, tracking)
               }
+              onDelete={() => deleteOrder(order.order_id)}
             />
           ))}
         </div>
@@ -183,6 +196,7 @@ export default function AdminDashboard() {
                     onStatusChange={(newStatus, tracking) =>
                       updateStatus(order.order_id, newStatus, tracking)
                     }
+                    onDelete={() => deleteOrder(order.order_id)}
                   />
                 ))}
               </tbody>

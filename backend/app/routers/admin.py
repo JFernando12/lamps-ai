@@ -41,6 +41,11 @@ def update_order_status(
     return admin_service.update_order_status(order_id, body)
 
 
+@router.delete("/orders/{order_id}")
+def delete_order(order_id: str, _admin=Depends(get_current_admin)):
+    return admin_service.delete_order(order_id)
+
+
 @router.get("/stats")
 def stats(_admin=Depends(get_current_admin)):
     return admin_service.get_stats()

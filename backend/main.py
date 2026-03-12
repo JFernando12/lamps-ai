@@ -34,10 +34,10 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(carts_router)
 app.include_router(photos_router)
+app.include_router(agent_router)
 app.include_router(orders_router)
 app.include_router(admin_router)
 app.include_router(catalog_router)
-app.include_router(agent_router)
 
 
 @app.get("/health")

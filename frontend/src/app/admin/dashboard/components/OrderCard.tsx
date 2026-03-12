@@ -7,6 +7,7 @@ import {
   ChevronUp,
   MessageCircle,
   ShoppingCart,
+  Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { PreviewThumb } from './PreviewThumb';
@@ -21,10 +22,12 @@ export function OrderCard({
   order,
   updating,
   onStatusChange,
+  onDelete,
 }: {
   order: Order;
   updating: boolean;
   onStatusChange: (status: string, tracking?: string) => void;
+  onDelete: () => void;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const isWhatsapp = order.type === 'whatsapp';
@@ -131,12 +134,23 @@ export function OrderCard({
       )}
 
       {/* Actions */}
-      <StatusDropdown
-        current={order.status}
-        orderType={order.type}
-        disabled={updating}
-        onChange={onStatusChange}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <StatusDropdown
+            current={order.status}
+            orderType={order.type}
+            disabled={updating}
+            onChange={onStatusChange}
+          />
+        </div>
+        <button
+          onClick={onDelete}
+          className="p-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-400/10 border border-white/10 hover:border-red-400/30 transition-colors"
+          title="Eliminar pedido"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
     </div>
   );
 }

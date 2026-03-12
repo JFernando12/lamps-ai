@@ -7,6 +7,7 @@ import {
   ChevronUp,
   MessageCircle,
   ShoppingCart,
+  Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { PreviewThumb } from './PreviewThumb';
@@ -22,10 +23,12 @@ export function DesktopRow({
   order,
   updating,
   onStatusChange,
+  onDelete,
 }: {
   order: Order;
   updating: boolean;
   onStatusChange: (status: string, tracking?: string) => void;
+  onDelete: () => void;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const isWhatsapp = order.type === 'whatsapp';
@@ -116,12 +119,21 @@ export function DesktopRow({
 
         {/* Actions */}
         <td className="px-4 py-3">
-          <StatusDropdown
-            current={order.status}
-            orderType={order.type}
-            disabled={updating}
-            onChange={onStatusChange}
-          />
+          <div className="flex items-center gap-2">
+            <StatusDropdown
+              current={order.status}
+              orderType={order.type}
+              disabled={updating}
+              onChange={onStatusChange}
+            />
+            <button
+              onClick={onDelete}
+              className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              title="Eliminar pedido"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </td>
       </tr>
 
