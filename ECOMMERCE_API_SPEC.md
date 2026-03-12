@@ -49,12 +49,12 @@ POST /api/payments/link
   "order_ref": "TDG-5215551234-1741600000",
   "expiration_hours": 24,
   "whatsapp_phone": "5215551234",
-  "_session_id": "sess_abc123",
-  "_channel_id": "ch_xyz"
+  "session_id": "sess_abc123",
+  "channel_id": "ch_xyz"
 }
 ```
 
-> Los campos `_session_id`, `_channel_id`, `whatsapp_phone` son inyectados automáticamente por la plataforma. `_session_id` y `_channel_id` se usan para construir el `callback_url`; `whatsapp_phone` asocia el número del cliente al registro.
+> Los campos `session_id`, `channel_id`, `whatsapp_phone` son inyectados automáticamente por la plataforma. `session_id` y `channel_id` se usan para construir el `callback_url`; `whatsapp_phone` asocia el número del cliente al registro.
 
 > El campo `order_ref` lo genera el agente con el formato `TDG-{phone}-{unix_timestamp}` (ej. `TDG-5215551234-1741600000`).
 
@@ -123,8 +123,8 @@ POST /api/payments/transfer
   "order_ref": "TDG-5215551234-1741600000",
   "proof_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/comprobante.jpg",
   "whatsapp_phone": "5215551234",
-  "_session_id": "sess_abc123",
-  "_channel_id": "ch_xyz"
+  "session_id": "sess_abc123",
+  "channel_id": "ch_xyz"
 }
 ```
 
@@ -156,8 +156,8 @@ POST /api/designs
   "photo_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/msg_abc.jpg",
   "product_id": "rgb",
   "whatsapp_phone": "5215551234",
-  "_session_id": "sess_abc123",
-  "_channel_id": "ch_xyz"
+  "session_id": "sess_abc123",
+  "channel_id": "ch_xyz"
 }
 ```
 
@@ -176,7 +176,7 @@ POST /api/designs
 { "error": "invalid_photo_url", "message": "No se pudo descargar la foto" }
 ```
 
-**Importante:** Cuando el diseño esté listo, el ecommerce debe llamar al webhook de la plataforma (ver sección 5). El `_session_id` y `_channel_id` son los identificadores que el ecommerce necesita para construir la URL del callback.
+**Importante:** Cuando el diseño esté listo, el ecommerce debe llamar al webhook de la plataforma (ver sección 5). El `session_id` y `channel_id` son los identificadores que el ecommerce necesita para construir la URL del callback.
 
 ---
 
@@ -460,7 +460,7 @@ Cuando el diseño (o cualquier operación larga) termine, el ecommerce debe noti
 POST https://{PLATAFORMA_BASE_URL}/whatsapp/webhooks/async/{channel_id}/{session_id}
 ```
 
-Los valores de `channel_id` y `session_id` vienen de los campos `_channel_id` y `_session_id` que la plataforma inyectó en el request original de `POST /api/designs`.
+Los valores de `channel_id` y `session_id` vienen de los campos `channel_id` y `session_id` que la plataforma inyectó en el request original de `POST /api/designs`.
 
 ### Header de autenticación
 

@@ -9,8 +9,8 @@ class CreatePaymentLinkRequest(BaseModel):
     order_id: str
     expiration_hours: int = 24
     whatsapp_phone: str | None = None
-    _session_id: str | None = None
-    _channel_id: str | None = None
+    session_id: str | None = None
+    channel_id: str | None = None
 
 
 class CreateTransferPaymentRequest(BaseModel):
@@ -19,8 +19,8 @@ class CreateTransferPaymentRequest(BaseModel):
     order_id: str
     proof_url: str          # URL of the transfer receipt photo
     whatsapp_phone: str | None = None
-    _session_id: str | None = None
-    _channel_id: str | None = None
+    session_id: str | None = None
+    channel_id: str | None = None
 
 
 # ── Designs ────────────────────────────────────────────────────────────────────
@@ -29,8 +29,8 @@ class CreateDesignRequest(BaseModel):
     order_id: str
     photo_url: str
     whatsapp_phone: str | None = None
-    _session_id: str | None = None
-    _channel_id: str | None = None
+    session_id: str | None = None
+    channel_id: str | None = None
 
 
 class RevisionDesignRequest(BaseModel):

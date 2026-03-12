@@ -54,7 +54,7 @@ def _generate_unique_order_id() -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
-    print(f"[agent_service] create_payment_link: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body._channel_id} session_id={body._session_id}")
+    print(f"[agent_service] create_payment_link: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body.channel_id} session_id={body.session_id}")
     if body.amount < 10:
         raise HTTPException(status_code=422, detail={"error": "invalid_amount", "message": "El monto mínimo es $10 MXN"})
 
@@ -63,10 +63,10 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", ".000Z")
 
     callback_url: Optional[str] = None
-    if body._channel_id and body._session_id:
+    if body.channel_id and body.session_id:
         callback_url = (
             f"{config.AI_PLATFORM_BASE_URL}/whatsapp/webhooks/async"
-            f"/{body._channel_id}/{body._session_id}"
+            f"/{body.channel_id}/{body.session_id}"
         )
     print(f"[agent_service] create_payment_link: callback_url={callback_url}")
 
@@ -209,7 +209,7 @@ def process_mp_webhook_agent(data: dict) -> dict:
 
 
 def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
-    print(f"[agent_service] create_transfer_payment: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body._channel_id} session_id={body._session_id}")
+    print(f"[agent_service] create_transfer_payment: amount={body.amount} concept='{body.concept}' order_id={body.order_id} channel_id={body.channel_id} session_id={body.session_id}")
     if body.amount < 10:
         raise HTTPException(status_code=422, detail={"error": "invalid_amount", "message": "El monto mínimo es $10 MXN"})
 
@@ -217,10 +217,10 @@ def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
     payment_id = f"pay_tr_{uuid.uuid4().hex[:10]}"
 
     callback_url: Optional[str] = None
-    if body._channel_id and body._session_id:
+    if body.channel_id and body.session_id:
         callback_url = (
             f"{config.AI_PLATFORM_BASE_URL}/whatsapp/webhooks/async"
-            f"/{body._channel_id}/{body._session_id}"
+            f"/{body.channel_id}/{body.session_id}"
         )
     print(f"[agent_service] create_transfer_payment: payment_id={payment_id} callback_url={callback_url}")
 
@@ -351,10 +351,10 @@ def create_design(body: CreateDesignRequest) -> dict:
 
     design_id = f"dsn_{uuid.uuid4().hex[:10]}"
     callback_url: Optional[str] = None
-    if body._channel_id and body._session_id:
+    if body.channel_id and body.session_id:
         callback_url = (
             f"{config.AI_PLATFORM_BASE_URL}/whatsapp/webhooks/async"
-            f"/{body._channel_id}/{body._session_id}"
+            f"/{body.channel_id}/{body.session_id}"
         )
 
     database.designs_table().put_item(Item=_compact({

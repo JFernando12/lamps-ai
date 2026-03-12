@@ -10,11 +10,11 @@ curl -X POST https://api.thedreamgiftmx.com/api/payments/link \
     "order_id": "TDG-2026-0042",
     "expiration_hours": 24,
     "whatsapp_phone": "5215551234",
-    "_session_id": "sess_abc123",
-    "_channel_id": "ch_xyz"
+    "session_id": "sess_abc123",
+    "channel_id": "ch_xyz"
   }'
 Campos requeridos:  amount, concept, order_id
-Campos opcionales: expiration_hours (default 24), whatsapp_phone, _session_id, _channel_id
+Campos opcionales: expiration_hours (default 24), whatsapp_phone, session_id, channel_id
 Respuesta:
 {
   "payment_id": "pay_a1b2c3d4e5f6",
@@ -35,8 +35,8 @@ curl -X POST https://api.thedreamgiftmx.com/api/payments/transfer \
     "order_id": "TDG-2026-0042",
     "proof_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/proof.jpg",
     "whatsapp_phone": "5215551234",
-    "_session_id": "sess_abc123",
-    "_channel_id": "ch_xyz"
+    "session_id": "sess_abc123",
+    "channel_id": "ch_xyz"
   }'
 
 Respuesta:
@@ -47,7 +47,7 @@ Respuesta:
 }
 
 Campos requeridos:  amount, concept, order_id, proof_url
-Campos opcionales: whatsapp_phone, _session_id, _channel_id
+Campos opcionales: whatsapp_phone, session_id, channel_id
 
 NOTA: El pago queda en "pending_verification" hasta que el admin lo apruebe desde el panel.
       Cuando sea aprobado, el ecommerce notifica automáticamente vía callback.
@@ -81,13 +81,13 @@ curl -X POST https://api.thedreamgiftmx.com/api/designs \
   -d '{
     "order_id": "TDG-2026-0042",
     "photo_url": "https://sales-agent-ai.s3.amazonaws.com/whatsapp/media/ch_xyz/msg_abc.jpg",
-    "_session_id": "sess_abc123",
-    "_channel_id": "ch_xyz",
+    "session_id": "sess_abc123",
+    "channel_id": "ch_xyz",
     "whatsapp_phone": "5215551234"
   }'
 
 Campos requeridos:  order_id, photo_url
-Campos opcionales: whatsapp_phone, _session_id, _channel_id
+Campos opcionales: whatsapp_phone, session_id, channel_id
 
 REQUISITO:
 
