@@ -670,9 +670,8 @@ def get_orders_by_phone(phone: str) -> dict:
 
 def get_orders_by_email(email: str) -> dict:
     resp = database.orders_table().query(
-        IndexName="agent_email-index",
-        KeyConditionExpression="#email = :e",
-        ExpressionAttributeNames={"#email": "email"},
+        IndexName="email-index",
+        KeyConditionExpression="user_email = :e",
         ExpressionAttributeValues={":e": email},
     )
     return {"orders": [_serialize_order(o) for o in resp.get("Items", [])]}

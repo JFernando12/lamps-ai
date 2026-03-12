@@ -54,7 +54,6 @@ TABLES = [
     # ── Orders ───────────────────────────────────────────────────────────────
     # Primary key : order_id (uuid)
     # GSI         : user_email → list all orders by registered user
-    # GSI         : email → list agent orders by customer email
     # GSI         : whatsapp_phone → list agent orders by WhatsApp number
     {
         "TableName": config.DYNAMO_TABLE_ORDERS,
@@ -64,7 +63,6 @@ TABLES = [
         "AttributeDefinitions": [
             {"AttributeName": "order_id",       "AttributeType": "S"},
             {"AttributeName": "user_email",     "AttributeType": "S"},
-            {"AttributeName": "email",          "AttributeType": "S"},
             {"AttributeName": "whatsapp_phone", "AttributeType": "S"},
         ],
         "BillingMode": "PAY_PER_REQUEST",
@@ -73,13 +71,6 @@ TABLES = [
                 "IndexName": "email-index",
                 "KeySchema": [
                     {"AttributeName": "user_email", "KeyType": "HASH"},
-                ],
-                "Projection": {"ProjectionType": "ALL"},
-            },
-            {
-                "IndexName": "agent_email-index",
-                "KeySchema": [
-                    {"AttributeName": "email", "KeyType": "HASH"},
                 ],
                 "Projection": {"ProjectionType": "ALL"},
             },
