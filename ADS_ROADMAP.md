@@ -44,7 +44,7 @@ Estado del pixel actual: ID `1310654400890735`
 ### 4. `ViewContent` en ProductSection y al entrar al checkout
 - **ProductSection home**: disparar cuando la sección entra al viewport (IntersectionObserver)
   ```js
-  fbq('track', 'ViewContent', { content_ids: ['rgb', 'madera'], content_type: 'product', value: 598, currency: 'MXN' })
+  fbq('track', 'ViewContent', { content_ids: ['rgb', 'madera'], content_type: 'product', value: 597, currency: 'MXN' })
   ```
 - **checkout/page.tsx**: disparar al cargar con el product específico en el query param
 
@@ -65,7 +65,7 @@ Estado del pixel actual: ID `1310654400890735`
 - Dispara al hacer clic en "Comprar ahora" / "Personalizar" antes de navegar al checkout
 - Archivo: `frontend/src/components/home/ProductSection.tsx`
   ```js
-  fbq('track', 'AddToCart', { content_ids: ['rgb'], content_type: 'product', value: 598, currency: 'MXN' })
+  fbq('track', 'AddToCart', { content_ids: ['rgb'], content_type: 'product', value: 597, currency: 'MXN' })
   ```
 
 ### 7. Verificación de dominio
@@ -77,7 +77,7 @@ Estado del pixel actual: ID `1310654400890735`
 
 ### 8. Feed de catálogo de productos (para Dynamic Ads)
 - Crear endpoint: `GET /api/catalog/feed` que devuelve XML/JSON con formato Meta
-- Productos: `rgb` ($598) y `madera` ($719)
+- Productos: `rgb` ($597) y `madera` ($719)
 - Campos: `id`, `title`, `description`, `availability`, `condition`, `price`, `image_link`, `link`, `brand`
 - Archivo: `backend/app/routers/` nuevo router `catalog.py`
 
