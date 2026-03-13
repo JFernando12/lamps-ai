@@ -60,7 +60,7 @@ export default function AdsPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white pt-20 pb-16 px-4">
+    <main className="min-h-screen bg-[#0a0a0a] text-white pt-6 pb-16 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -80,39 +80,40 @@ export default function AdsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white/3 border border-white/10 rounded-2xl p-1 mb-6 w-fit">
+        <div className="flex gap-1 bg-white/3 border border-white/10 rounded-2xl p-1 mb-6">
           <button
             onClick={() => setTab('attribution')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
               tab === 'attribution'
                 ? 'bg-amber-500 text-black'
                 : 'text-white/50 hover:text-white'
             }`}
           >
             <TrendingUp size={14} />
-            Atribución
+            <span>Atribución</span>
           </button>
           <button
             onClick={() => setTab('config')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
               tab === 'config'
                 ? 'bg-amber-500 text-black'
                 : 'text-white/50 hover:text-white'
             }`}
           >
             <Settings size={14} />
-            Configuración
+            <span className="hidden xs:inline">Configuración</span>
+            <span className="xs:hidden">Config</span>
           </button>
           <button
             onClick={() => setTab('events')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
               tab === 'events'
                 ? 'bg-amber-500 text-black'
                 : 'text-white/50 hover:text-white'
             }`}
           >
             <Radio size={14} />
-            Eventos
+            <span>Eventos</span>
           </button>
         </div>
 

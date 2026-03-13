@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ConfigProvider } from '@/contexts/ConfigContext';
 import Navbar from '@/components/Navbar';
 import { UtmTracker } from '@/components/UtmTracker';
 
@@ -78,11 +79,13 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        <AuthProvider>
-          <UtmTracker />
-          <Navbar />
-          {children}
-        </AuthProvider>
+        <ConfigProvider>
+          <AuthProvider>
+            <UtmTracker />
+            <Navbar />
+            {children}
+          </AuthProvider>
+        </ConfigProvider>
       </body>
     </html>
   );

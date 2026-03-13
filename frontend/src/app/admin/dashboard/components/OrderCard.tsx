@@ -5,7 +5,6 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
-  MessageCircle,
   ShoppingCart,
   Trash2,
 } from 'lucide-react';
@@ -16,6 +15,7 @@ import { PaymentsPanel } from './PaymentsPanel';
 import { ShippingDetails } from './ShippingDetails';
 import { StatusDropdown } from './StatusDropdown';
 import { STATUS_COLORS, STATUS_LABELS } from './types';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import type { Order } from './types';
 
 export function OrderCard({
@@ -63,10 +63,7 @@ export function OrderCard({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
                 {isWhatsapp ? (
-                  <MessageCircle
-                    size={11}
-                    className="text-green-400 shrink-0"
-                  />
+                  <WhatsAppIcon size={11} className="text-green-400 shrink-0" />
                 ) : (
                   <ShoppingCart size={11} className="text-blue-400 shrink-0" />
                 )}

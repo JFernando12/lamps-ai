@@ -66,12 +66,14 @@ export default function TransferenciasPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white pt-20 pb-16 px-4">
+    <main className="min-h-screen bg-[#0a0a0a] text-white pt-6 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold sm:text-2xl">Transferencias pendientes</h1>
+            <h1 className="text-xl font-bold sm:text-2xl">
+              Transferencias pendientes
+            </h1>
             <p className="text-white/40 text-xs mt-0.5">
               Verifica el comprobante y aprueba o rechaza cada pago
             </p>
@@ -107,7 +109,9 @@ export default function TransferenciasPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Clock size={13} className="text-amber-400" />
-                      <span className="text-xs text-amber-400 font-medium">Por verificar</span>
+                      <span className="text-xs text-amber-400 font-medium">
+                        Por verificar
+                      </span>
                     </div>
                     <p className="font-bold text-lg text-amber-400">
                       ${t.amount.toFixed(0)} MXN
@@ -117,7 +121,7 @@ export default function TransferenciasPage() {
                   <div className="text-right text-xs text-white/40">
                     <p className="font-mono">{t.payment_id}</p>
                     <p className="mt-0.5">
-                      {new Date(t.created_at).toLocaleString("es-MX")}
+                      {new Date(t.created_at).toLocaleString('es-MX')}
                     </p>
                   </div>
                 </div>

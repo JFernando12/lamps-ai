@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { PRODUCTS } from '@/app/checkout/components/types';
+import { useConfig, waHref } from '@/contexts/ConfigContext';
 
 interface OrderItem {
   product_id: string;
@@ -107,6 +108,7 @@ function OrderStatusContent() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const paymentStatus = searchParams.get('status');
+  const { whatsapp_number } = useConfig();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -219,7 +221,7 @@ function OrderStatusContent() {
               <p className="text-white/50 text-sm mt-0.5">
                 Puedes intentarlo de nuevo o contactarnos por{' '}
                 <a
-                  href="https://wa.me/527551155510"
+                  href={waHref(whatsapp_number)}
                   className="text-amber-400 underline"
                 >
                   WhatsApp

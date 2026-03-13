@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { FAQS } from './data';
+import { useConfig, waHref } from '@/contexts/ConfigContext';
 
 export function FaqSection() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const { whatsapp_number } = useConfig();
 
   return (
     <section className="py-12 md:py-20 px-4 bg-white/2">
@@ -51,7 +53,7 @@ export function FaqSection() {
         <p className="text-center text-white/30 text-sm mt-8">
           ¿Tienes otra duda?{' '}
           <a
-            href="https://wa.me/527551155510"
+            href={waHref(whatsapp_number)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() =>

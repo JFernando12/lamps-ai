@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
 
 from ..dependencies import get_current_admin
-from ..schemas.admin import UpdateOrderStatusRequest
+from ..schemas.admin import UpdateOrderStatusRequest, SiteConfigUpdate
 from ..schemas.email_marketing import SendCampaignRequest, SendTrackingRequest
 from ..services import admin_service
 from ..services import agent_service
+from ..services import config_service
 from ..services import email_marketing_service
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -114,3 +115,15 @@ def email_send_tracking(
     _admin=Depends(get_current_admin),
 ):
     return email_marketing_service.send_tracking_email(order_id, body.tracking_number)
+
+
+# ── Site config ───────────────────────────────────────────────────────────────
+
+@router.get("/config")
+def get_site_config(_admin=Depends(get_current_admin)):
+    return config_service.get_config()
+
+
+@router.patch("/config")
+def update_site_config(body: SiteConfigUpdate, _admin=Depends(get_current_admin)):
+    return config_service.update_config(body.model_dump(exclude_none=True))

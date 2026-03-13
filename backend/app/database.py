@@ -40,3 +40,7 @@ def designs_table():
 
 def payments_table():
     return get_table(config.DYNAMO_TABLE_PAYMENTS)
+
+
+def config_table():
+    return get_table(config.DYNAMO_TABLE_CONFIG)

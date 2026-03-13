@@ -155,6 +155,19 @@ TABLES = [
             },
         ],
     },
+
+    # ── Site Config (single-item settings store) ──────────────────────
+    # Partition key : setting_id  (always "general")
+    {
+        "TableName": config.DYNAMO_TABLE_CONFIG,
+        "KeySchema": [
+            {"AttributeName": "setting_id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "setting_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
 ]
 
 

@@ -1,6 +1,12 @@
-import { Instagram, Facebook, MessageCircle } from 'lucide-react';
+'use client';
+
+import { Instagram, Facebook } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
+import { useConfig, waHref } from '@/contexts/ConfigContext';
 
 export function Footer() {
+  const { whatsapp_number } = useConfig();
+
   return (
     <footer className="py-12 px-4 border-t border-white/10">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-white/30 text-sm">
@@ -33,13 +39,13 @@ export function Footer() {
             <Facebook size={20} />
           </a>
           <a
-            href="https://wa.me/527551155510"
+            href={waHref(whatsapp_number)}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-white transition-colors"
             aria-label="WhatsApp"
           >
-            <MessageCircle size={20} />
+            <WhatsAppIcon size={20} />
           </a>
         </div>
         <div className="flex gap-6">
