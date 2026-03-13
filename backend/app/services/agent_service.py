@@ -839,9 +839,10 @@ def _run_design_job(
             ai_client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
             image_files = [open(f, "rb") for f in temp_files]
             response = ai_client.images.edit(
-                model="gpt-image-1",
+                model="gpt-image-1.5",
                 image=image_files if len(image_files) > 1 else image_files[0],
                 prompt=base_prompt,
+                quality="high",
                 size="1024x1024",
             )
             for f in image_files:
