@@ -917,7 +917,7 @@ def _notify_platform_design_ready(
             "type": "multi",
             "messages": [
                 {"type": "image", "url": design_url, "caption": "Tu diseño personalizado 🎨"},
-                {"type": "text", "body": "¿Qué te parece? Responde *sí, me gusta* para confirmarlo\no dime qué quisieras cambiar."},
+                {"type": "text", "body": "¡Tu diseño está listo! Responde *sí, me gusta* para aprobarlo y continuar con tu pedido. 🎨"},
             ],
         },
         "context_for_agent": {
