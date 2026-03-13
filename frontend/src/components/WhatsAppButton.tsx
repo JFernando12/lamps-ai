@@ -17,7 +17,7 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className="fixed bottom-6 right-4 z-50 flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold pl-4 pr-5 py-3 rounded-full shadow-lg shadow-black/40 transition-all hover:scale-105 touch-manipulation"
+      className="fixed bottom-3 right-4 z-50 flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold pl-4 pr-5 py-3 rounded-full shadow-lg shadow-black/40 transition-all hover:scale-105 touch-manipulation"
       aria-label="Contactar por WhatsApp"
     >
       <WhatsAppIcon size={22} />
