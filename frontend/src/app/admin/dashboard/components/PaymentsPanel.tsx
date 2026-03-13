@@ -1,6 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
+import { ExternalLink } from 'lucide-react';
 import type { Payment } from './types';
 
 const METHOD_LABELS: Record<string, string> = {
@@ -32,38 +33,56 @@ export function PaymentsPanel({
   paidTotal?: number;
 }) {
   if (!payments || payments.length === 0) {
-    return <p className="text-white/30 text-xs italic">Sin pagos registrados</p>;
+    return (
+      <p className="text-white/30 text-xs italic">Sin pagos registrados</p>
+    );
   }
 
   return (
     <div className="flex flex-col gap-1.5">
       {payments.map((p) => (
-        <div
-          key={p.payment_id}
-          className="flex items-center justify-between gap-2 text-xs"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-white/40">{METHOD_LABELS[p.method] ?? p.method}</span>
-            <span className="text-white/20">·</span>
-            <span className="text-white/60 truncate">{p.concept}</span>
+        <div key={p.payment_id} className="flex flex-col gap-1 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-white/40">
+                {METHOD_LABELS[p.method] ?? p.method}
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-white/60 truncate">{p.concept}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-semibold text-amber-400">
+                ${p.amount.toFixed(0)}
+              </span>
+              <span
+                className={clsx(
+                  'px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                  PAYMENT_STATUS_COLORS[p.status] ?? 'text-white/40 bg-white/5',
+                )}
+              >
+                {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="font-semibold text-amber-400">${p.amount.toFixed(0)}</span>
-            <span
-              className={clsx(
-                'px-1.5 py-0.5 rounded-full text-[10px] font-medium',
-                PAYMENT_STATUS_COLORS[p.status] ?? 'text-white/40 bg-white/5',
-              )}
+          {p.proof_url && (
+            <a
+              href={p.proof_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] text-amber-400/70 hover:text-amber-400 transition-colors"
             >
-              {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
-            </span>
-          </div>
+              <ExternalLink size={10} />
+              Ver comprobante
+            </a>
+          )}
         </div>
       ))}
       {paidTotal !== undefined && (
         <div className="flex justify-between text-xs pt-1 border-t border-white/10 mt-0.5">
           <span className="text-white/40">Total aprobado</span>
-          <span className="font-bold text-green-400">${paidTotal.toFixed(0)} MXN</span>
+          <span className="font-bold text-green-400">
+            ${paidTotal.toFixed(0)} MXN
+          </span>
         </div>
       )}
     </div>

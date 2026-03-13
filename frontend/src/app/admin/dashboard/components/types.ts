@@ -19,6 +19,7 @@ export interface Payment {
     | 'approved'
     | 'rejected'
     | 'expired';
+  proof_url?: string;
 }
 
 export interface Order {

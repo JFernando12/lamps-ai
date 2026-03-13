@@ -2,7 +2,6 @@
 import base64
 import io
 import logging
-import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -225,6 +224,22 @@ def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
         )
     print(f"[agent_service] create_transfer_payment: payment_id={payment_id} callback_url={callback_url}")
 
+    # Download the proof image from the presigned URL (agents-ai's bucket) and
+    # re-upload to lamps-ai's own bucket so this project owns the file.
+    proof_s3_key: Optional[str] = None
+    if body.proof_url:
+        try:
+            with httpx.Client(timeout=30) as client:
+                proof_resp = client.get(body.proof_url)
+                proof_resp.raise_for_status()
+                proof_bytes = proof_resp.content
+                proof_content_type = proof_resp.headers.get("content-type", "image/jpeg").split(";")[0]
+            proof_ext = proof_content_type.split("/")[-1] or "jpg"
+            proof_s3_key = f"proofs/{payment_id}.{proof_ext}"
+            s3_helper.upload_bytes(proof_bytes, proof_s3_key, content_type=proof_content_type)
+        except Exception as _proof_err:
+            logger.warning("Could not download/reupload proof for %s: %s", payment_id, _proof_err)
+
     database.payments_table().put_item(Item=_compact({
         "payment_id": payment_id,
         "method": "transfer",
@@ -232,7 +247,7 @@ def create_transfer_payment(body: CreateTransferPaymentRequest) -> dict:
         "whatsapp_phone": body.whatsapp_phone,
         "amount": str(body.amount),
         "concept": body.concept,
-        "proof_url": body.proof_url,
+        "proof_s3_key": proof_s3_key,
         "status": "pending_verification",
         "callback_url": callback_url,
         "created_at": now_iso,
@@ -293,7 +308,11 @@ def list_pending_transfers() -> dict:
                 "order_id": i.get("order_id"),
                 "amount": float(i.get("amount", 0)),
                 "concept": i.get("concept"),
-                "proof_url": i.get("proof_url"),
+                "proof_url": (
+                    s3_helper.get_presigned_url(i["proof_s3_key"])
+                    if i.get("proof_s3_key")
+                    else None
+                ),
                 "whatsapp_phone": i.get("whatsapp_phone"),
                 "created_at": i.get("created_at"),
             }
@@ -321,25 +340,18 @@ def create_design(body: CreateDesignRequest) -> dict:
             detail={"error": "payment_required", "message": f"Se requiere un mínimo de $100 MXN pagados para crear un diseño (actual: ${approved_total:.2f} MXN)"},
         )
 
-    # Download the WhatsApp photo and upload to S3 to get a permanent photo_id.
-    # If the URL is a private S3 object, use boto3 to avoid 403 errors.
-    _s3_match = re.match(r"https://([^.]+)\.s3(?:\.[^/]+)?\.amazonaws\.com/(.+)", body.photo_url)
-    if _s3_match:
-        _s3_bucket, _s3_key = _s3_match.group(1), _s3_match.group(2)
-        photo_bytes, photo_content_type = s3_helper.download_bytes(_s3_key, bucket=_s3_bucket)
-    else:
-        with httpx.Client(timeout=30) as client:
-            photo_resp = client.get(body.photo_url)
-            photo_resp.raise_for_status()
-            photo_bytes = photo_resp.content
-            photo_content_type = photo_resp.headers.get("content-type", "image/jpeg").split(";")[0]
+    # Download the photo via plain HTTPS. agents-ai always sends a presigned URL,
+    # so no cross-account S3 credentials are needed here.
+    with httpx.Client(timeout=30) as client:
+        photo_resp = client.get(body.photo_url)
+        photo_resp.raise_for_status()
+        photo_bytes = photo_resp.content
+        photo_content_type = photo_resp.headers.get("content-type", "image/jpeg").split(";")[0]
 
     photo_id = str(uuid.uuid4())
     ext = photo_content_type.split("/")[-1]
     s3_key = f"photos/{photo_id}.{ext}"
     s3_helper.upload_bytes(photo_bytes, s3_key, content_type=photo_content_type)
-    s3_photo_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
-
     now = datetime.now(timezone.utc).isoformat()
     database.photos_table().put_item(Item={
         "photo_id": photo_id,
@@ -367,10 +379,9 @@ def create_design(body: CreateDesignRequest) -> dict:
     database.designs_table().put_item(Item=_compact({
         "design_id": design_id,
         "order_id": body.order_id,
-        "photo_url": s3_photo_url,
+        "photo_s3_key": s3_key,
         "status": "processing",
         "iteration": 1,
-        "design_url": None,
         "error_message": None,
         "approved": False,
         "callback_url": callback_url,
@@ -386,7 +397,7 @@ def create_design(body: CreateDesignRequest) -> dict:
         ExpressionAttributeValues={":d": design_id, ":u": now},
     )
 
-    _trigger_design_job(design_id, s3_photo_url, callback_url)
+    _trigger_design_job(design_id, s3_key, callback_url)
 
     return {"design_id": design_id, "estimated_seconds": 30}
 
@@ -421,7 +432,7 @@ def request_revision(design_id: str, body: RevisionDesignRequest) -> dict:
     # Append current version to revision history before overwriting
     history_entry = {
         "iteration": prev_iteration,
-        "design_url": item.get("design_url"),
+        "design_s3_key": item.get("design_s3_key"),
         "change_notes": item.get("change_notes"),
         "created_at": item.get("updated_at", item.get("created_at")),
     }
@@ -431,7 +442,7 @@ def request_revision(design_id: str, body: RevisionDesignRequest) -> dict:
     database.designs_table().update_item(
         Key={"design_id": design_id},
         UpdateExpression=(
-            "SET #s = :s, iteration = :it, design_url = :du, "
+            "SET #s = :s, iteration = :it, design_s3_key = :dk, "
             "error_message = :em, approved = :ap, change_notes = :cn, "
             "revision_history = :rh, updated_at = :u"
         ),
@@ -439,7 +450,7 @@ def request_revision(design_id: str, body: RevisionDesignRequest) -> dict:
         ExpressionAttributeValues={
             ":s": "processing",
             ":it": prev_iteration + 1,
-            ":du": None,
+            ":dk": None,
             ":em": None,
             ":ap": False,
             ":cn": body.change_notes,
@@ -448,12 +459,17 @@ def request_revision(design_id: str, body: RevisionDesignRequest) -> dict:
         },
     )
 
+    # Generate a presigned URL from the stored key so _run_design_job can
+    # download the previous design via plain HTTPS (no cross-project boto3).
+    prev_key = item.get("design_s3_key")
+    previous_design_url = s3_helper.get_presigned_url(prev_key) if prev_key else None
+
     _trigger_design_job(
         design_id,
-        item.get("photo_url"),
+        item.get("photo_s3_key"),
         callback_url,
         change_notes=body.change_notes,
-        previous_design_url=item.get("design_url"),
+        previous_design_url=previous_design_url,
         revision_history=revision_history,
     )
 
@@ -510,10 +526,11 @@ def get_order(order_id: str) -> dict:
     design = None
     if item.get("design_id"):
         design_item = database.designs_table().get_item(Key={"design_id": item["design_id"]}).get("Item")
+        _d_key = design_item.get("design_s3_key") if design_item else None
         design = {
             "design_id": item["design_id"],
             "status": design_item.get("status") if design_item else None,
-            "design_url": design_item.get("design_url") if design_item else None,
+            "design_url": s3_helper.get_presigned_url(_d_key) if _d_key else None,
             "iteration": int(design_item.get("iteration", 1)) if design_item else None,
             "approved": design_item.get("approved", False) if design_item else None,
             "error_message": design_item.get("error_message") if design_item else None,
@@ -669,11 +686,11 @@ def confirm_agent_order(order_id: str) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     database.orders_table().update_item(
         Key={"order_id": order_id},
-        UpdateExpression="SET #s = :s, design_url = :du, #items = :items, total_amount = :ta, user_email = :ue, updated_at = :u",
+        UpdateExpression="SET #s = :s, design_s3_key = :dk, #items = :items, total_amount = :ta, user_email = :ue, updated_at = :u",
         ExpressionAttributeNames={"#s": "status", "#items": "items"},
         ExpressionAttributeValues={
             ":s": "in_process",
-            ":du": design_item.get("design_url"),
+            ":dk": design_item.get("design_s3_key"),
             ":items": [first_item],
             ":ta": str(full_price),
             ":ue": item.get("email"),
@@ -729,7 +746,7 @@ def get_orders_by_email(email: str) -> dict:
 
 def _trigger_design_job(
     design_id: str,
-    photo_url: str,
+    photo_s3_key: str,
     callback_url: Optional[str],
     change_notes: Optional[str] = None,
     previous_design_url: Optional[str] = None,
@@ -739,7 +756,7 @@ def _trigger_design_job(
     import threading
     thread = threading.Thread(
         target=_run_design_job,
-        args=(design_id, photo_url, callback_url, change_notes, previous_design_url, revision_history),
+        args=(design_id, photo_s3_key, callback_url, change_notes, previous_design_url, revision_history),
         daemon=True,
     )
     thread.start()
@@ -747,7 +764,7 @@ def _trigger_design_job(
 
 def _run_design_job(
     design_id: str,
-    photo_url: str,
+    photo_s3_key: str,
     callback_url: Optional[str],
     change_notes: Optional[str] = None,
     previous_design_url: Optional[str] = None,
@@ -755,12 +772,8 @@ def _run_design_job(
 ) -> None:
     """Download photo, call OpenAI gpt-image-1 edit, upload result, notify platform."""
 
-    def _fetch_image(url: str) -> bytes:
-        """Download image bytes from S3 (private) or any public URL."""
-        m = re.match(r"https://([^.]+)\.s3(?:\.[^/]+)?\.amazonaws\.com/(.+)", url)
-        if m:
-            data, _ = s3_helper.download_bytes(m.group(2), bucket=m.group(1))
-            return data
+    def _fetch_presigned(url: str) -> bytes:
+        """Download image bytes from a presigned (public HTTPS) URL."""
         with httpx.Client(timeout=30) as client:
             resp = client.get(url)
             resp.raise_for_status()
@@ -773,8 +786,8 @@ def _run_design_job(
 
         temp_files = []
         try:
-            # Foto principal
-            photo_bytes = _fetch_image(photo_url)
+            # Foto principal — download directly from lamps-ai's own S3 bucket
+            photo_bytes, _ = s3_helper.download_bytes(photo_s3_key)
             temp_photo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             temp_photo.write(photo_bytes)
             temp_photo.flush()
@@ -782,7 +795,7 @@ def _run_design_job(
 
             # Si hay diseño previo, también lo guardamos
             if previous_design_url:
-                prev_design_bytes = _fetch_image(previous_design_url)
+                prev_design_bytes = _fetch_presigned(previous_design_url)
                 temp_prev = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
                 temp_prev.write(prev_design_bytes)
                 temp_prev.flush()
@@ -839,19 +852,17 @@ def _run_design_job(
             # 4. Subir a S3
             s3_key = f"designs/{design_id}.png"
             s3_helper.upload_bytes(image_bytes, s3_key, content_type="image/png")
-            # Permanent URL stored in DB (used for internal S3 access on revisions)
-            design_url = f"https://{config.S3_BUCKET}.s3.amazonaws.com/{s3_key}"
-            # Presigned URL for WhatsApp (Meta needs to download the image)
-            design_url_wa = s3_helper.get_presigned_url(s3_key, expires_in=86400)  # 24 h
+            # Presigned URL for WhatsApp (Meta needs to download the image, 24 h)
+            design_url_wa = s3_helper.get_presigned_url(s3_key, expires_in=86400)
 
-            # 5. Marcar como listo
+            # 5. Marcar como listo — store only the S3 key, never a full URL
             database.designs_table().update_item(
                 Key={"design_id": design_id},
-                UpdateExpression="SET #s = :s, design_url = :u, updated_at = :t",
+                UpdateExpression="SET #s = :s, design_s3_key = :k, updated_at = :t",
                 ExpressionAttributeNames={"#s": "status"},
                 ExpressionAttributeValues={
                     ":s": "ready",
-                    ":u": design_url,
+                    ":k": s3_key,
                     ":t": datetime.now(timezone.utc).isoformat(),
                 },
             )

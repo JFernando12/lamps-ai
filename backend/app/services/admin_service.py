@@ -54,6 +54,11 @@ def list_orders() -> list:
                     "concept": p.get("concept"),
                     "amount": float(p.get("amount", 0)),
                     "status": p.get("status"),
+                    "proof_url": (
+                        s3_helper.get_presigned_url(p["proof_s3_key"])
+                        if p.get("proof_s3_key")
+                        else None
+                    ),
                 }
                 for p in payments_resp.get("Items", [])
             ]
@@ -68,9 +73,11 @@ def list_orders() -> list:
                         Key={"design_id": dsn_id}
                     ).get("Item")
                 if designs_cache.get(dsn_id):
-                    o["design_url"] = designs_cache[dsn_id].get("design_url")
                     o["design_status"] = designs_cache[dsn_id].get("status")
                     o["design_approved"] = designs_cache[dsn_id].get("approved", False)
+                    _d_key = designs_cache[dsn_id].get("design_s3_key")
+                    if _d_key:
+                        o["design_url"] = s3_helper.get_presigned_url(_d_key, expires_in=3600)
         else:
             o["type"] = "checkout"
             phid = (o.get("items") or [{}])[0].get("photo_id") or o.get("photo_id")
