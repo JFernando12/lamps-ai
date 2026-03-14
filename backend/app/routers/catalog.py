@@ -18,7 +18,7 @@ _PRODUCTS = [
             "Convierte tu foto en una lámpara acrílica LED RGB única, grabada con láser. "
             "16 colores, control remoto incluido. Tamaño 20×15 cm. Cable USB incluido."
         ),
-        "price": "598.00 MXN",
+        "price": "597.00 MXN",
         "image_path": "/gallery/lampara-2-v2.jpg",
         "checkout_path": "/checkout?product=rgb",
     },

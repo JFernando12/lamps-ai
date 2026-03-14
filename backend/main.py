@@ -16,6 +16,14 @@ from app.routers.app_config import router as app_config_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup guards — catch config values that are syntactically valid but wrong for production
+    if config.APP_ENV == "production":
+        if "localhost" in config.BACKEND_URL:
+            raise RuntimeError("BACKEND_URL must be set to the public domain in production (got localhost)")
+        if "localhost" in config.FRONTEND_URL:
+            raise RuntimeError("FRONTEND_URL must be set to the public domain in production (got localhost)")
+        if "example.com" in config.AI_PLATFORM_BASE_URL or "fake" in config.AI_PLATFORM_BASE_URL:
+            raise RuntimeError("AI_PLATFORM_BASE_URL must be set to the real platform URL in production")
     from app.scheduler import start_scheduler, stop_scheduler
     start_scheduler()
     yield
@@ -26,7 +34,7 @@ app = FastAPI(title="Lamps AI API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list({config.FRONTEND_URL, "http://localhost:3000", *config.EXTRA_ORIGINS}),
+    allow_origins=list({config.FRONTEND_URL, "http://localhost:3000"}),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

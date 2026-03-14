@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import mercadopago
+from botocore.exceptions import ClientError
 from fastapi import HTTPException
 
 from .. import config
@@ -21,6 +22,18 @@ def _compact(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
+def _map_mp_status(mp_status: str) -> str:
+    return {
+        "approved": "approved",
+        "rejected": "rejected",
+        "cancelled": "rejected",
+        "expired": "expired",
+        "pending": "pending",
+        "in_process": "pending",
+        "authorized": "pending",
+    }.get(mp_status, "pending")
+
+
 def create_order(
     body: CreateOrderRequest,
     user_email: str | None,
@@ -29,12 +42,34 @@ def create_order(
 ) -> dict:
     # 1. Fetch and validate cart
     cart = database.carts_table().get_item(Key={"cart_id": body.cart_id}).get("Item")
-    if not cart or cart.get("status") in ("converted", "expired"):
+    if not cart or cart.get("status") in ("converted", "expired", "converting"):
         raise HTTPException(status_code=400, detail="Carrito no válido o ya convertido")
 
     cart_items = cart.get("items", [])
     if not cart_items:
         raise HTTPException(status_code=400, detail="El carrito está vacío")
+
+    # Atomically claim the cart to prevent double-spend (TOCTOU race condition).
+    # Only one concurrent request can transition the cart to "converting".
+    try:
+        database.carts_table().update_item(
+            Key={"cart_id": body.cart_id},
+            UpdateExpression="SET #s = :converting",
+            ConditionExpression=(
+                "attribute_not_exists(#s) OR "
+                "(#s <> :converted AND #s <> :expired AND #s <> :converting)"
+            ),
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={
+                ":converting": "converting",
+                ":converted": "converted",
+                ":expired": "expired",
+            },
+        )
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            raise HTTPException(status_code=400, detail="Carrito no válido o ya convertido")
+        raise
 
     # Resolve email: authenticated user > cart email > None
     resolved_email: str | None = user_email or cart.get("email") or None
@@ -45,7 +80,7 @@ def create_order(
 
     # 2. Build MercadoPago preference from cart items
     sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
-    is_local = "localhost" in config.FRONTEND_URL or "127.0.0.1" in config.FRONTEND_URL
+    is_production = config.APP_ENV == "production"
 
     mp_items = []
     total_amount = 0.0
@@ -63,6 +98,7 @@ def create_order(
     preference_payload = {
         "items": mp_items,
         "external_reference": payment_id,
+        "notification_url": f"{config.BACKEND_URL}/api/orders/webhook/mp",
         "back_urls": {
             "success": f"{config.FRONTEND_URL}/pedido/{order_id}?status=success",
             "failure": f"{config.FRONTEND_URL}/pedido/{order_id}?status=failure",
@@ -71,7 +107,7 @@ def create_order(
         # Only include payer email when we have a real one and we're in production
         **({
             "payer": {"email": resolved_email}
-        } if not is_local and resolved_email and "@" in resolved_email else {}),
+        } if is_production and resolved_email and "@" in resolved_email else {}),
         "auto_return": "approved",
     }
     pref_response = sdk.preference().create(preference_payload)
@@ -168,32 +204,50 @@ def get_order(order_id: str, user_email: str | None, is_admin: bool = False) -> 
 
 
 def sync_payment(order_id: str, mp_payment_id: str, user_email: str | None) -> dict:
-    """Manually fetch payment status from MP and update the order (used on redirect back)."""
+    """Fetch payment status from MP and update the order (called on MP redirect back)."""
     item = database.orders_table().get_item(Key={"order_id": order_id}).get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Order not found")
     if user_email is not None and item.get("user_email") != user_email:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
-    payment = sdk.payment().get(mp_payment_id)["response"]
-    mp_status = payment.get("status")
-    new_status = mp_status if mp_status in ("approved", "rejected") else "pending"
-    now = datetime.now(timezone.utc).isoformat()
-
-    # Update payment record in payments_table
+    # 1. Look up our stored payment record first — used to validate ownership
     payments = database.payments_table().query(
         IndexName="order_id-index",
         KeyConditionExpression="order_id = :ref",
         ExpressionAttributeValues={":ref": order_id},
     ).get("Items", [])
-    if payments:
-        database.payments_table().update_item(
-            Key={"payment_id": payments[0]["payment_id"]},
-            UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":s": new_status, ":pid": str(mp_payment_id), ":u": now},
+    if not payments:
+        raise HTTPException(status_code=404, detail="Payment record not found")
+    payment_record = payments[0]
+
+    # 2. Fetch live status from MP
+    sdk = mercadopago.SDK(config.MP_ACCESS_TOKEN)
+    try:
+        mp_response = sdk.payment().get(mp_payment_id)["response"]
+    except Exception as exc:
+        logger.error("MP API error in sync_payment order=%s: %s", order_id, exc)
+        raise HTTPException(status_code=502, detail="Error al contactar MercadoPago")
+
+    # 3. Validate that this MP payment belongs to our order (prevents spoofing with an
+    #    approved payment_id from a different transaction)
+    if mp_response.get("external_reference") != payment_record["payment_id"]:
+        logger.warning(
+            "sync_payment ownership mismatch: order=%s expected_ref=%s mp_ref=%s",
+            order_id, payment_record["payment_id"], mp_response.get("external_reference"),
         )
+        raise HTTPException(status_code=400, detail="El pago no corresponde a este pedido")
+
+    mp_status = mp_response.get("status")
+    new_status = _map_mp_status(mp_status)
+    now = datetime.now(timezone.utc).isoformat()
+
+    database.payments_table().update_item(
+        Key={"payment_id": payment_record["payment_id"]},
+        UpdateExpression="SET #s = :s, mp_payment_id = :pid, updated_at = :u",
+        ExpressionAttributeNames={"#s": "status"},
+        ExpressionAttributeValues={":s": new_status, ":pid": str(mp_payment_id), ":u": now},
+    )
 
     table = database.orders_table()
     table.update_item(
@@ -205,8 +259,14 @@ def sync_payment(order_id: str, mp_payment_id: str, user_email: str | None) -> d
 
     updated = table.get_item(Key={"order_id": order_id}).get("Item", {})
 
-    if mp_status == "approved":
+    # Fire CAPI Purchase only once — the webhook handler may also fire it
+    if mp_status == "approved" and not updated.get("purchase_event_sent"):
         get_event("Purchase").send(updated)
+        table.update_item(
+            Key={"order_id": order_id},
+            UpdateExpression="SET purchase_event_sent = :t",
+            ExpressionAttributeValues={":t": True},
+        )
 
     return updated
 
@@ -232,7 +292,7 @@ def process_mp_webhook(data: dict) -> dict:
         return {"ok": True}
 
     order_id = payment_item["order_id"]
-    new_status = mp_status if mp_status in ("approved", "rejected") else "pending"
+    new_status = _map_mp_status(mp_status)
     now = datetime.now(timezone.utc).isoformat()
 
     database.payments_table().update_item(
@@ -251,6 +311,12 @@ def process_mp_webhook(data: dict) -> dict:
 
     if mp_status == "approved":
         order = database.orders_table().get_item(Key={"order_id": order_id}).get("Item", {})
-        get_event("Purchase").send(order)
+        if not order.get("purchase_event_sent"):
+            get_event("Purchase").send(order)
+            database.orders_table().update_item(
+                Key={"order_id": order_id},
+                UpdateExpression="SET purchase_event_sent = :t",
+                ExpressionAttributeValues={":t": True},
+            )
 
     return {"ok": True}

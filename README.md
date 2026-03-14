@@ -102,11 +102,9 @@ ADMIN_PASSWORD=password-del-admin
 
 # MercadoPago
 MP_ACCESS_TOKEN=APP_USR-...
-MP_PUBLIC_KEY=APP_USR-...
 
 # App
 FRONTEND_URL=http://localhost:3000   # Cambiar a URL de ngrok/producción al pagar
-EXTRA_ORIGINS=                       # Orígenes CORS adicionales (separados por coma)
 
 # Email — carritos abandonados (vacío = deshabilitado)
 SES_FROM_EMAIL=noreply@tudominio.com
@@ -120,7 +118,6 @@ META_ACCESS_TOKEN=
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-...
 NEXT_PUBLIC_META_PIXEL_ID=
 ```
 

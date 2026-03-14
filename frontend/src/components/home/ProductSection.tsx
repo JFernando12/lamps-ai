@@ -23,7 +23,7 @@ const PRODUCTS = [
     btnClass: 'bg-amber-500 hover:bg-amber-400 text-black',
     title: 'Lámpara acrílica',
     titleAccent: 'LED RGB',
-    price: 598,
+    price: 597,
     originalPrice: 999,
     tagline: '16 colores · control remoto incluido',
     ctaLabel: 'Pedir Lámpara RGB',

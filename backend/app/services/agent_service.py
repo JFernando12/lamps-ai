@@ -79,6 +79,7 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
                 "currency_id": "MXN",
             }
         ],
+        "notification_url": f"{config.BACKEND_URL}/api/payments/webhook/mp",
         "expiration_date_to": _expiration_iso(body.expiration_hours),
         "expires": True,
     }
@@ -109,7 +110,7 @@ def create_payment_link(body: CreatePaymentLinkRequest) -> dict:
     }))
 
     # MP provides different URLs for sandbox vs production
-    is_sandbox = "sandbox" in config.MP_ACCESS_TOKEN.lower() or config.MP_ACCESS_TOKEN.startswith("TEST-")
+    is_sandbox = config.APP_ENV != "production"
     payment_url = pref.get("sandbox_init_point" if is_sandbox else "init_point")
     print(f"[agent_service] create_payment_link: payment_id={payment_id} is_sandbox={is_sandbox} url={payment_url}")
 

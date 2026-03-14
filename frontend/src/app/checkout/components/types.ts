@@ -26,7 +26,7 @@ export const PRODUCTS: Record<ProductId, ProductConfig> = {
   rgb: {
     id: 'rgb',
     name: 'Lámpara acrílica LED RGB',
-    price: 598,
+    price: 597,
     originalPrice: 999,
     tagline: '16 colores · control remoto incluido',
     badge: 'Más popular',

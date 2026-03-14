@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 
+from ..auth_utils import validate_mp_webhook_signature
 from ..dependencies import get_current_user, optional_user
 from ..schemas.orders import CreateOrderRequest
 from ..services import orders_service
@@ -41,5 +42,6 @@ def sync_payment(order_id: str, payment_id: str, user: dict | None = Depends(opt
 
 
 @router.post("/webhook/mp")
-async def mp_webhook(data: dict):
+async def mp_webhook(request: Request, data: dict):
+    validate_mp_webhook_signature(request, str((data.get("data") or {}).get("id", "")))
     return orders_service.process_mp_webhook(data)

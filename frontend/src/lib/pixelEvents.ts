@@ -41,7 +41,7 @@ function _trackViewContent(_data?: Record<string, unknown>): void {
   window.fbq?.('track', 'ViewContent', {
     content_ids: ['rgb', 'madera'],
     content_type: 'product',
-    value: 598,
+    value: 597,
     currency: 'MXN',
   });
 }
