@@ -11,6 +11,7 @@ from .. import config
 from .. import database
 from ..schemas.orders import CreateOrderRequest
 from ..pixel_events import get_event
+from ..services.email_marketing_service import send_order_confirmation
 
 from ..catalog import PRODUCTS
 
@@ -268,6 +269,18 @@ def sync_payment(order_id: str, mp_payment_id: str, user_email: str | None) -> d
             ExpressionAttributeValues={":t": True},
         )
 
+    # Send confirmation email only once across sync_payment + webhook
+    if mp_status == "approved" and not updated.get("confirmation_email_sent"):
+        try:
+            send_order_confirmation(order_id)
+            table.update_item(
+                Key={"order_id": order_id},
+                UpdateExpression="SET confirmation_email_sent = :t",
+                ExpressionAttributeValues={":t": True},
+            )
+        except Exception as exc:
+            logger.warning("confirmation email failed for order=%s: %s", order_id, exc)
+
     return updated
 
 
@@ -318,5 +331,15 @@ def process_mp_webhook(data: dict) -> dict:
                 UpdateExpression="SET purchase_event_sent = :t",
                 ExpressionAttributeValues={":t": True},
             )
+        if not order.get("confirmation_email_sent"):
+            try:
+                send_order_confirmation(order_id)
+                database.orders_table().update_item(
+                    Key={"order_id": order_id},
+                    UpdateExpression="SET confirmation_email_sent = :t",
+                    ExpressionAttributeValues={":t": True},
+                )
+            except Exception as exc:
+                logger.warning("confirmation email failed for order=%s: %s", order_id, exc)
 
     return {"ok": True}

@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-SegmentType = Literal["all", "customers", "abandoned_carts", "payment_failed", "pending_payment"]
+SegmentType = Literal["all", "customers", "abandoned_carts", "rejected", "pending"]
 
 
 class SendCampaignRequest(BaseModel):
