@@ -6,6 +6,7 @@ export function SelectField({
   placeholder,
   error,
   autoComplete,
+  fieldKey,
 }: {
   label: string;
   value: string;
@@ -14,9 +15,10 @@ export function SelectField({
   placeholder?: string;
   error?: string;
   autoComplete?: string;
+  fieldKey?: string;
 }) {
   return (
-    <div>
+    <div data-field={fieldKey}>
       <label className="block text-white/60 text-sm mb-1.5">{label}</label>
       <select
         value={value}

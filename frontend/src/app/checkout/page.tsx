@@ -217,20 +217,6 @@ function CheckoutContent() {
 
   const handleDetailsNext = async (e: React.FormEvent) => {
     e.preventDefault();
-    const required = [
-      'full_name',
-      'address',
-      'city',
-      'state',
-      'zip_code',
-      'phone',
-    ] as const;
-    for (const key of required) {
-      if (!shipping[key].trim()) {
-        setError(`El campo "${key.replace('_', ' ')}" es obligatorio`);
-        return;
-      }
-    }
     setError(null);
     getEvent('AddShippingInfo').track({
       value: items.reduce(

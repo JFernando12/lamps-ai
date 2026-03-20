@@ -10,6 +10,7 @@ export function Field({
   placeholder,
   error,
   readOnly,
+  fieldKey,
 }: {
   label: string;
   value: string;
@@ -22,9 +23,10 @@ export function Field({
   placeholder?: string;
   error?: string;
   readOnly?: boolean;
+  fieldKey?: string;
 }) {
   return (
-    <div>
+    <div data-field={fieldKey}>
       <label className="block text-white/60 text-sm mb-1.5">{label}</label>
       <input
         type={type}

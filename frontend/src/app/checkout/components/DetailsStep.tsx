@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import { ShippingForm } from './types';
 import { Field } from './Field';
@@ -40,6 +40,10 @@ const MEXICO_STATES = [
 ];
 
 interface FieldErrors {
+  full_name?: string;
+  address?: string;
+  colonia?: string;
+  city?: string;
   zip_code?: string;
   phone?: string;
   state?: string;
@@ -47,15 +51,17 @@ interface FieldErrors {
 
 function validateFields(s: ShippingForm): FieldErrors {
   const errs: FieldErrors = {};
+  if (!s.full_name.trim()) errs.full_name = 'El nombre completo es obligatorio';
+  if (!s.address.trim()) errs.address = 'La calle y número es obligatoria';
+  if (!s.colonia.trim()) errs.colonia = 'La colonia es obligatoria';
+  if (!s.city.trim()) errs.city = 'La ciudad o municipio es obligatorio';
+  if (!s.state) errs.state = 'Selecciona un estado';
   if (!/^\d{5}$/.test(s.zip_code)) {
     errs.zip_code = 'El código postal debe tener exactamente 5 dígitos';
   }
   const rawPhone = s.phone.replace(/[\s\-().+]/g, '');
   if (!/^\d{10}$/.test(rawPhone)) {
     errs.phone = 'El teléfono debe tener 10 dígitos (sin código de país)';
-  }
-  if (!s.state) {
-    errs.state = 'Selecciona un estado';
   }
   return errs;
 }
@@ -78,12 +84,19 @@ export function DetailsStep({
   onBack,
 }: Props) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   function handleSubmit(e: React.FormEvent) {
     const errs = validateFields(shipping);
     if (Object.keys(errs).length > 0) {
       e.preventDefault();
       setFieldErrors(errs);
+      // Scroll to the first field with an error
+      const firstErrKey = Object.keys(errs)[0];
+      const el = formRef.current?.querySelector<HTMLElement>(
+        `[data-field="${firstErrKey}"]`,
+      );
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setFieldErrors({});
@@ -102,7 +115,12 @@ export function DetailsStep({
   }
 
   return (
-    <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      autoComplete="on"
+      className="space-y-4"
+    >
       <h2 className="font-semibold text-lg mb-1 flex items-center gap-2">
         <MapPin size={18} className="text-amber-400" />
         Datos de envío
@@ -112,8 +130,10 @@ export function DetailsStep({
         <Field
           label="Nombre completo"
           autoComplete="name"
+          fieldKey="full_name"
           value={shipping.full_name}
           onChange={(v) => set('full_name', v)}
+          error={fieldErrors.full_name}
         />
         <Field
           label="Teléfono (10 dígitos)"
@@ -122,6 +142,7 @@ export function DetailsStep({
           inputMode="numeric"
           maxLength={10}
           placeholder="Ej. 5512345678"
+          fieldKey="phone"
           value={shipping.phone}
           onChange={(v) => set('phone', v.replace(/\D/g, ''))}
           error={fieldErrors.phone}
@@ -132,24 +153,30 @@ export function DetailsStep({
         label="Calle y número exterior / interior"
         autoComplete="street-address"
         placeholder="Ej. Av. Insurgentes Sur 1234, Int. 5"
+        fieldKey="address"
         value={shipping.address}
         onChange={(v) => set('address', v)}
+        error={fieldErrors.address}
       />
 
       <Field
         label="Colonia o fraccionamiento"
         autoComplete="address-line2"
         placeholder="Ej. Del Valle, Narvarte, Polanco…"
+        fieldKey="colonia"
         value={shipping.colonia}
         onChange={(v) => set('colonia', v)}
+        error={fieldErrors.colonia}
       />
 
       <div className="grid md:grid-cols-2 gap-4">
         <Field
           label="Ciudad o municipio"
           autoComplete="address-level2"
+          fieldKey="city"
           value={shipping.city}
           onChange={(v) => set('city', v)}
+          error={fieldErrors.city}
         />
         <Field
           label="Código postal"
@@ -157,6 +184,7 @@ export function DetailsStep({
           inputMode="numeric"
           maxLength={5}
           placeholder="5 dígitos"
+          fieldKey="zip_code"
           value={shipping.zip_code}
           onChange={(v) => set('zip_code', v.replace(/\D/g, '').slice(0, 5))}
           error={fieldErrors.zip_code}
@@ -166,6 +194,7 @@ export function DetailsStep({
       <SelectField
         label="Estado"
         autoComplete="address-level1"
+        fieldKey="state"
         value={shipping.state}
         onChange={(v) => set('state', v)}
         options={MEXICO_STATES}
