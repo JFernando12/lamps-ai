@@ -37,11 +37,14 @@ function _trackPageView(_data?: Record<string, unknown>): void {
   window.fbq?.('track', 'PageView');
 }
 
-function _trackViewContent(_data?: Record<string, unknown>): void {
+function _trackViewContent(data?: Record<string, unknown>): void {
   window.fbq?.('track', 'ViewContent', {
-    content_ids: ['rgb', 'madera'],
+    content_ids: (data?.contentIds as string[] | undefined) ?? [
+      'rgb',
+      'madera',
+    ],
     content_type: 'product',
-    value: 597,
+    value: data?.value ?? 597,
     currency: 'MXN',
   });
 }
@@ -168,8 +171,9 @@ export const PIXEL_EVENTS: PixelEventDef[] = [
     trigger: "Click en 'Comprar ahora' en ProductSection",
     file: 'components/home/ProductSection.tsx',
     hasEventId: false,
-    hasCapi: false,
-    notes: 'Requiere { contentId, value }.',
+    hasCapi: true,
+    notes:
+      'Requiere { contentId, value }. CAPI se dispara en POST /api/carts/ al crear carrito nuevo.',
     track: _trackAddToCart,
   },
   {
@@ -179,7 +183,8 @@ export const PIXEL_EVENTS: PixelEventDef[] = [
     file: 'app/checkout/page.tsx',
     hasEventId: true,
     hasCapi: true,
-    notes: 'Requiere { value, eventId }. El eventId se comparte con el backend para deduplicación CAPI.',
+    notes:
+      'Requiere { value, eventId }. El eventId se comparte con el backend para deduplicación CAPI.',
     track: _trackInitiateCheckout,
   },
   {
@@ -225,11 +230,13 @@ export const PIXEL_EVENTS: PixelEventDef[] = [
   {
     name: 'Purchase',
     type: 'standard',
-    trigger: '/pedido/:id con ?status=success (browser) + pago aprobado (servidor)',
+    trigger:
+      '/pedido/:id con ?status=success (browser) + pago aprobado (servidor)',
     file: 'app/pedido/[id]/page.tsx',
     hasEventId: true,
     hasCapi: true,
-    notes: 'Requiere { value, orderId, contentName }. El eventId es el order_id para deduplicación CAPI.',
+    notes:
+      'Requiere { value, orderId, contentName }. El eventId es el order_id para deduplicación CAPI.',
     track: _trackPurchase,
   },
   {

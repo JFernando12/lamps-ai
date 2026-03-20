@@ -63,6 +63,7 @@ export function getProduct(id: string | null): ProductConfig {
 export interface ShippingForm {
   full_name: string;
   address: string;
+  colonia: string;
   city: string;
   state: string;
   zip_code: string;
@@ -73,6 +74,7 @@ export interface ShippingForm {
 export const EMPTY_SHIPPING: ShippingForm = {
   full_name: '',
   address: '',
+  colonia: '',
   city: '',
   state: '',
   zip_code: '',

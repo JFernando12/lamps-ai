@@ -38,4 +38,5 @@ ADMIN_EMAIL = "admin@lamps.ai"
 
 META_PIXEL_ID = os.getenv("META_PIXEL_ID", "")
 META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
+META_TEST_EVENT_CODE = os.getenv("META_TEST_EVENT_CODE", "")
 

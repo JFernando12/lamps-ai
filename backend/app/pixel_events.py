@@ -23,6 +23,7 @@ from typing import Callable, Literal
 import httpx
 
 from . import config
+from .catalog import PRODUCTS
 
 logger = logging.getLogger(__name__)
 _API_VERSION = "v21.0"
@@ -52,6 +53,9 @@ def _build_user_data(
     if phone:
         clean = "".join(c for c in phone if c.isdigit())
         if clean:
+            # Normalize to E.164: 10-digit Mexican numbers need country code 52
+            if len(clean) == 10:
+                clean = "52" + clean
             data["ph"] = [_sha256(clean)]
     if full_name:
         parts = full_name.strip().split(None, 1)
@@ -75,11 +79,14 @@ def _send_capi(events: list[dict]) -> None:
         logger.debug("Meta CAPI skipped: credentials not configured")
         return
     url = f"https://graph.facebook.com/{_API_VERSION}/{config.META_PIXEL_ID}/events"
+    payload: dict = {"data": events}
+    if config.META_TEST_EVENT_CODE:
+        payload["test_event_code"] = config.META_TEST_EVENT_CODE
     try:
         resp = httpx.post(
             url,
             params={"access_token": config.META_ACCESS_TOKEN},
-            json={"data": events},
+            json=payload,
             timeout=5.0,
         )
         if resp.status_code != 200:
@@ -114,17 +121,27 @@ def _send_purchase(order: dict) -> None:
         "custom_data": {
             "currency": "MXN",
             "value": str(value),
-            "content_ids": [(order.get("items") or [{}])[0].get("product_id", "")],
+            "content_ids": [item.get("product_id", "") for item in (order.get("items") or [])],
             "content_type": "product",
+            "num_items": sum(item.get("quantity", 1) for item in (order.get("items") or [])),
         },
     }])
 
 
 def _send_initiate_checkout(order: dict) -> None:
     """order keys: order_id, user_email, total_amount,
-    checkout_event_id, client_ip, user_agent, fbclid, fbp"""
+    checkout_event_id, items, client_ip, user_agent, fbclid, fbp"""
     order_id = order["order_id"]
     value = float(order.get("total_amount", 0))
+    items = order.get("items") or []
+    content_ids = [item.get("product_id", "") for item in items]
+    num_items = sum(item.get("quantity", 1) for item in items)
+    custom_data: dict = {"currency": "MXN", "value": str(value)}
+    if content_ids:
+        custom_data["content_ids"] = content_ids
+        custom_data["content_type"] = "product"
+    if num_items:
+        custom_data["num_items"] = num_items
     _send_capi([{
         "event_name": "InitiateCheckout",
         "event_time": int(time.time()),
@@ -138,7 +155,39 @@ def _send_initiate_checkout(order: dict) -> None:
             fbclid=order.get("fbclid"),
             fbp=order.get("fbp"),
         ),
-        "custom_data": {"currency": "MXN", "value": str(value)},
+        "custom_data": custom_data,
+    }])
+
+
+def _send_add_to_cart(cart: dict) -> None:
+    """cart keys: cart_id, email, items, fbclid, fbp, client_ip, user_agent"""
+    items = cart.get("items") or []
+    total = sum(
+        PRODUCTS.get(item.get("product_id", "rgb"), {}).get("unit_price", 0) * item.get("quantity", 1)
+        for item in items
+    )
+    content_ids = [item.get("product_id", "rgb") for item in items]
+    num_items = sum(item.get("quantity", 1) for item in items)
+    _send_capi([{
+        "event_name": "AddToCart",
+        "event_time": int(time.time()),
+        "action_source": "website",
+        "event_id": f"cart_{cart['cart_id']}",
+        "event_source_url": f"{config.FRONTEND_URL}/checkout",
+        "user_data": _build_user_data(
+            email=cart.get("email", ""),
+            client_ip=cart.get("client_ip"),
+            user_agent=cart.get("user_agent"),
+            fbclid=cart.get("fbclid"),
+            fbp=cart.get("fbp"),
+        ),
+        "custom_data": {
+            "currency": "MXN",
+            "value": str(total),
+            "content_ids": content_ids,
+            "content_type": "product",
+            "num_items": num_items,
+        },
     }])
 
 
@@ -165,6 +214,14 @@ class PixelEventDef:
 
 
 PIXEL_EVENTS: list[PixelEventDef] = [
+    PixelEventDef(
+        name="AddToCart",
+        type="standard",
+        route="POST /api/carts/",
+        has_event_id=True,
+        send=_send_add_to_cart,
+        notes="event_id = cart_{cart_id}; se dispara al crear un carrito nuevo",
+    ),
     PixelEventDef(
         name="InitiateCheckout",
         type="standard",

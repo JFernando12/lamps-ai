@@ -171,6 +171,7 @@ def create_order(
         "user_email": resolved_email,
         "total_amount": total_amount,
         "checkout_event_id": body.checkout_event_id,
+        "items": cart_items,
         "client_ip": client_ip,
         "user_agent": user_agent,
         "fbclid": cart.get("fbclid"),
@@ -260,14 +261,21 @@ def sync_payment(order_id: str, mp_payment_id: str, user_email: str | None) -> d
 
     updated = table.get_item(Key={"order_id": order_id}).get("Item", {})
 
-    # Fire CAPI Purchase only once — the webhook handler may also fire it
-    if mp_status == "approved" and not updated.get("purchase_event_sent"):
-        get_event("Purchase").send(updated)
-        table.update_item(
-            Key={"order_id": order_id},
-            UpdateExpression="SET purchase_event_sent = :t",
-            ExpressionAttributeValues={":t": True},
-        )
+    # Fire CAPI Purchase only once — set flag atomically BEFORE sending to prevent
+    # duplicates when sync_payment and process_mp_webhook run concurrently.
+    if mp_status == "approved":
+        try:
+            table.update_item(
+                Key={"order_id": order_id},
+                UpdateExpression="SET purchase_event_sent = :t",
+                ConditionExpression="attribute_not_exists(purchase_event_sent)",
+                ExpressionAttributeValues={":t": True},
+            )
+            get_event("Purchase").send(updated)
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] != "ConditionalCheckFailedException":
+                raise
+            # Flag already set — another handler already sent the event
 
     # Send confirmation email only once across sync_payment + webhook
     if mp_status == "approved" and not updated.get("confirmation_email_sent"):
@@ -324,13 +332,18 @@ def process_mp_webhook(data: dict) -> dict:
 
     if mp_status == "approved":
         order = database.orders_table().get_item(Key={"order_id": order_id}).get("Item", {})
-        if not order.get("purchase_event_sent"):
-            get_event("Purchase").send(order)
+        try:
             database.orders_table().update_item(
                 Key={"order_id": order_id},
                 UpdateExpression="SET purchase_event_sent = :t",
+                ConditionExpression="attribute_not_exists(purchase_event_sent)",
                 ExpressionAttributeValues={":t": True},
             )
+            get_event("Purchase").send(order)
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] != "ConditionalCheckFailedException":
+                raise
+            # Flag already set — another handler already sent the event
         if not order.get("confirmation_email_sent"):
             try:
                 send_order_confirmation(order_id)

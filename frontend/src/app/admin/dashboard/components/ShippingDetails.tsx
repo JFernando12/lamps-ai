@@ -13,6 +13,10 @@ export function ShippingDetails({ shipping }: { shipping: ShippingInfo }) {
         {shipping.address}
       </p>
       <p className="text-white/70">
+        <span className="text-white/30">Colonia: </span>
+        {shipping.colonia}
+      </p>
+      <p className="text-white/70">
         <span className="text-white/30">Ciudad: </span>
         {shipping.city}, {shipping.state} {shipping.zip_code}
       </p>

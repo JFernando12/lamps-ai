@@ -95,6 +95,9 @@ export function PaymentStep({
           <p className="text-white/40 text-xs mb-0.5">Envío a</p>
           <p className="text-sm font-medium truncate">{shipping.full_name}</p>
           <p className="text-white/50 text-xs truncate">{shipping.address}</p>
+          <p className="text-white/50 text-xs truncate">
+            Col. {shipping.colonia}
+          </p>
           <p className="text-white/50 text-xs">
             {shipping.city}, {shipping.state} {shipping.zip_code}
           </p>

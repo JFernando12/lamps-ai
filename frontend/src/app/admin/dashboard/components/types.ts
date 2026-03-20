@@ -1,6 +1,7 @@
 export interface ShippingInfo {
   full_name: string;
   address: string;
+  colonia: string;
   city: string;
   state: string;
   zip_code: string;

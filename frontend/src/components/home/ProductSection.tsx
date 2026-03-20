@@ -27,7 +27,7 @@ const PRODUCTS = [
     originalPrice: 999,
     tagline: '16 colores · control remoto incluido',
     ctaLabel: 'Pedir Lámpara RGB',
-    image: '/gallery/lampara-2-v2.jpg',
+    image: '/gallery/lampara-1-v2.jpg',
     imageAlt: 'Lámpara acrílica LED RGB personalizada',
     features: [
       'Acrílico transparente de 5 mm',
@@ -75,7 +75,10 @@ export function ProductSection() {
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.disconnect();
-          getEvent('ViewContent').track();
+          getEvent('ViewContent').track({
+            contentIds: PRODUCTS.map((p) => p.id),
+            value: Math.min(...PRODUCTS.map((p) => p.price)),
+          });
         }
       },
       { threshold: 0.2 },
@@ -113,7 +116,7 @@ export function ProductSection() {
               </div>
 
               {/* Image */}
-              <div className="relative w-full h-52 rounded-2xl overflow-hidden border border-white/10 mb-6">
+              <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-white/10 mb-6">
                 <Image
                   src={p.image}
                   alt={p.imageAlt}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ..schemas.carts import UpsertCartRequest
 from ..services import carts_service
@@ -7,9 +7,16 @@ router = APIRouter(prefix="/api/carts", tags=["carts"])
 
 
 @router.post("/", status_code=201)
-def upsert_cart(body: UpsertCartRequest):
+def upsert_cart(body: UpsertCartRequest, request: Request):
     """Create or update a cart draft (abandoned checkout recovery)."""
-    return carts_service.upsert_cart(body)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    client_ip = (
+        forwarded_for.split(",")[0].strip()
+        if forwarded_for
+        else (request.client.host if request.client else None)
+    )
+    user_agent = request.headers.get("User-Agent")
+    return carts_service.upsert_cart(body, client_ip=client_ip, user_agent=user_agent)
 
 
 @router.get("/{cart_id}")

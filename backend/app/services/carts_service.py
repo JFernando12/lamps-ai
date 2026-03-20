@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from .. import config, database
 from ..email_sender import send_abandoned_cart_email
+from ..pixel_events import get_event
 from ..schemas.carts import UpsertCartRequest
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ def _compact(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def upsert_cart(body: UpsertCartRequest) -> dict:
+def upsert_cart(body: UpsertCartRequest, client_ip: str | None = None, user_agent: str | None = None) -> dict:
     """Create a new cart draft or update an existing one (idempotent via cart_id)."""
     table = database.carts_table()
     items_data = [_compact(item.model_dump()) for item in body.items]
@@ -68,6 +69,17 @@ def upsert_cart(body: UpsertCartRequest) -> dict:
         "updated_at": _now_iso(),
         "expires_ttl": _ttl(),
     }))
+
+    # Fire AddToCart CAPI once for each new cart
+    get_event("AddToCart").send({
+        "cart_id": cart_id,
+        "email": str(body.email) if body.email else "",
+        "items": items_data,
+        "fbclid": body.fbclid,
+        "fbp": body.fbp,
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+    })
     return {"cart_id": cart_id}
 
 
