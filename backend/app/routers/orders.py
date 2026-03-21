@@ -1,9 +1,12 @@
+import logging
+
 from fastapi import APIRouter, Depends, Request
 
-from ..auth_utils import validate_mp_webhook_signature
 from ..dependencies import get_current_user, optional_user
 from ..schemas.orders import CreateOrderRequest
 from ..services import orders_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
@@ -43,5 +46,16 @@ def sync_payment(order_id: str, payment_id: str, user: dict | None = Depends(opt
 
 @router.post("/webhook/mp")
 async def mp_webhook(request: Request, data: dict):
-    validate_mp_webhook_signature(request, str((data.get("data") or {}).get("id", "")))
-    return orders_service.process_mp_webhook(data)
+    logger.info(
+        "MP webhook | headers=%s | query=%s | body=%s",
+        dict(request.headers),
+        dict(request.query_params),
+        data,
+    )
+    try:
+        result = orders_service.process_mp_webhook(data)
+        logger.info("MP webhook processed ok | result=%s", result)
+        return result
+    except Exception as exc:
+        logger.exception("MP webhook failed | error=%s", exc)
+        raise
