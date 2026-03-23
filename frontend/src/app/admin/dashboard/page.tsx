@@ -172,9 +172,8 @@ export default function AdminDashboard() {
                 <tr className="text-white/40 text-xs uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Pedido</th>
                   <th className="text-left px-4 py-3">Cliente</th>
-                  <th className="text-left px-4 py-3">Foto</th>
+                  <th className="text-left px-4 py-3">Producto</th>
                   <th className="text-left px-4 py-3">Envío</th>
-                  <th className="text-left px-4 py-3">Fecha</th>
                   <th className="text-left px-4 py-3">Total</th>
                   <th className="text-left px-4 py-3">Estado</th>
                   <th className="text-left px-4 py-3">Acciones</th>
@@ -183,7 +182,7 @@ export default function AdminDashboard() {
               <tbody className="divide-y divide-white/5">
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-10 text-white/30">
+                    <td colSpan={7} className="text-center py-10 text-white/30">
                       No se encontraron pedidos
                     </td>
                   </tr>

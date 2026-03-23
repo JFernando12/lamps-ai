@@ -91,6 +91,15 @@ def list_orders() -> list:
                     if key:
                         o["photo_url"] = s3_helper.get_presigned_url(key)
 
+        # Extract product / engraving / Spotify from first item for both order types
+        first_item = (o.get("items") or [{}])[0]
+        if not o.get("product_id") and first_item.get("product_id"):
+            o["product_id"] = first_item["product_id"]
+        if first_item.get("engraving_text"):
+            o["engraving_text"] = first_item["engraving_text"]
+        if first_item.get("spotify_url"):
+            o["spotify_url"] = first_item["spotify_url"]
+
     orders.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return orders
 

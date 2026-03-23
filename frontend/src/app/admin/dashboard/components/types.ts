@@ -48,6 +48,10 @@ export interface Order {
   payments?: Payment[];
   paid_total?: number;
   email?: string;
+
+  // personalización
+  engraving_text?: string;
+  spotify_url?: string;
 }
 
 export interface Stats {
