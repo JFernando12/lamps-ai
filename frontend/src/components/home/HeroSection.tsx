@@ -63,13 +63,13 @@ export function HeroSection() {
             </div>
           </div>
           <div className="flex items-center justify-center order-1 md:order-2">
-            <div className="relative w-96 h-96 md:w-xl md:h-144 rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl shadow-amber-500/10">
+            <div className="relative w-84 h-84 md:w-104 md:h-104 rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl shadow-amber-500/10">
               <Image
                 src="/gallery/lampara-1-v2.jpg"
                 alt="Lámpara acrílica LED personalizada"
                 fill
                 className="object-cover"
-                sizes="(max-width: 768px) 384px, 576px"
+                sizes="(max-width: 768px) 336px, 416px"
                 priority
               />
             </div>
