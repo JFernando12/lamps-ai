@@ -1,6 +1,7 @@
 'use client';
 
-import { Instagram, Facebook } from 'lucide-react';
+import { InstagramIcon } from '@/components/InstagramIcon';
+import { FacebookIcon } from '@/components/FacebookIcon';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import { useConfig, waHref } from '@/contexts/ConfigContext';
 
@@ -27,7 +28,7 @@ export function Footer() {
             className="hover:text-white transition-colors"
             aria-label="Instagram"
           >
-            <Instagram size={20} />
+            <InstagramIcon size={20} />
           </a>
           <a
             href="https://facebook.com/thedreamgift.mx"
@@ -36,7 +37,7 @@ export function Footer() {
             className="hover:text-white transition-colors"
             aria-label="Facebook"
           >
-            <Facebook size={20} />
+            <FacebookIcon size={20} />
           </a>
           <a
             href={waHref(whatsapp_number)}
