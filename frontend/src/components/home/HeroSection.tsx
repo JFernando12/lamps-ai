@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { Sparkles, ArrowRight, Star } from 'lucide-react';
 
 export function HeroSection() {
@@ -63,15 +62,8 @@ export function HeroSection() {
             </div>
           </div>
           <div className="flex items-center justify-center order-1 md:order-2">
-            <div className="relative w-84 h-84 md:w-104 md:h-104 rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl shadow-amber-500/10">
-              <Image
-                src="/gallery/lampara-1-v2.jpg"
-                alt="Lámpara acrílica LED personalizada"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 336px, 416px"
-                priority
-              />
+            <div className="relative w-84 h-84 md:w-104 md:h-104 rounded-3xl overflow-hidden border border-amber-500/20 shadow-2xl shadow-amber-500/10 bg-white/5">
+              {/* TEMP: image removed for perf diagnostic — restore before merging */}
             </div>
           </div>
         </div>

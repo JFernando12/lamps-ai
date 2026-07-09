@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { CheckCircle2, Shield, Sparkles, Zap, Flame } from 'lucide-react';
 import { getEvent } from '@/lib/pixelEvents';
 
@@ -115,16 +114,8 @@ export function ProductSection() {
                 </span>
               </div>
 
-              {/* Image */}
-              <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-white/10 mb-6">
-                <Image
-                  src={p.image}
-                  alt={p.imageAlt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
+              {/* TEMP: image removed for perf diagnostic — restore before merging */}
+              <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-white/10 mb-6 bg-white/5" />
 
               {/* Title */}
               <h3 className="text-2xl font-extrabold mb-1">
