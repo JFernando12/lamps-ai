@@ -42,7 +42,6 @@ export function GallerySection() {
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 768px"
-                priority={i === 0}
               />
             </div>
           ))}
