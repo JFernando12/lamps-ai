@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import clsx from 'clsx';
 import { GALLERY_IMAGES } from './data';
 
@@ -27,15 +28,22 @@ export function GallerySection() {
           className="relative overflow-hidden rounded-3xl"
           style={{ aspectRatio: '4/3' }}
         >
-          {/* TEMP: images removed for perf diagnostic — restore before merging */}
           {GALLERY_IMAGES.map((src, i) => (
             <div
               key={src}
               className={clsx(
-                'absolute inset-0 transition-opacity duration-700 bg-white/5',
+                'absolute inset-0 transition-opacity duration-700',
                 i === galleryIdx ? 'opacity-100 z-10' : 'opacity-0 z-0',
               )}
-            />
+            >
+              <Image
+                src={src}
+                alt={`Lámpara personalizada ${i + 1}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 768px"
+              />
+            </div>
           ))}
           <button
             onClick={() =>
