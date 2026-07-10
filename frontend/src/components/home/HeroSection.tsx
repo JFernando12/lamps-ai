@@ -13,11 +13,7 @@ export function HeroSection() {
               <Sparkles size={14} />
               Diseño personalizado · Grabado con láser
             </div>
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-2 md:mb-6">
-              Tu recuerdo <span className="text-amber-400">convertido</span>
-              <br />
-              en una lámpara única
-            </h1>
+            {/* TEMP: h1 removed for perf diagnostic — restore before merging */}
             <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-2 md:mb-6">
               <span className="text-white/40 text-base md:text-xl line-through">
                 $999
